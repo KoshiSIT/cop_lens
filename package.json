@@ -9,13 +9,30 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:javascript"
+  ],
   "main": "./extension.js",
   "contributes": {
-    "commands": [{
-      "command": "cop-lens.helloWorld",
-      "title": "Hello World"
-    }]
+    "commands": [
+      {
+        "command": "cop-lens.helloWorld",
+        "title": "Hello World"
+      },
+      {
+        "command": "cop-lens.goToLine",
+        "title": "Go to Line"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "copOverview",
+          "name": "COP Overview",
+          "when": "resourceExtname == .js || resourceExtname == .ts"
+        }
+      ]
+    }
   },
   "scripts": {
     "lint": "eslint .",
