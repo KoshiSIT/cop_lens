@@ -1,6 +1,9 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-const vscode = require('vscode');
+const vscode = require("vscode");
+const { detectLayers } = require("./src/parser/layerDetector");
+const { COPTreeProvider } = require("./src/ui/treeProvider");
+const { setupCommands } = require("./src/commands");
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -9,28 +12,48 @@ const vscode = require('vscode');
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
+    console.log("COP-lens activated");
+    const treeProvider = new COPTreeProvider();
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "cop-lens" is now active!');
+    vscode.window.registerTreeDataProvider("copOverview", treeProvider);
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with  registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('cop-lens.helloWorld', function () {
-		// The code you place here will be executed every time your command is executed
+    function analyzeCurrentFile() {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor || editor.document.languageId !== "javascript") {
+            treeProvider.updateResults([]);
+            return;
+        }
 
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from cop-lens!');
-	});
+        console.log("Analyzing current file for layers...");
+        const code = editor.document.getText();
+        const results = detectLayers(code);
 
-	context.subscriptions.push(disposable);
+        console.log(`Detected ${results.length} layers.`);
+        treeProvider.updateResults(results);
+    }
+
+    analyzeCurrentFile();
+
+    // update analysis when the file is changed
+    const changeListener = vscode.window.onDidChangeActiveTextEditor(() => {
+        analyzeCurrentFile();
+    });
+
+    // update analysis when saved
+
+    const saveListener = vscode.workspace.onDidSaveTextDocument((document) => {
+        if (document.languageId === "javascript") {
+            analyzeCurrentFile();
+        }
+    });
+    setupCommands(context);
+
+    context.subscriptions.push(changeListener, saveListener);
 }
-
 // This method is called when your extension is deactivated
-function deactivate() {}
+function deactivate() { }
 
 module.exports = {
-	activate,
-	deactivate
-}
+    activate,
+    deactivate,
+};

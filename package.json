@@ -1,50 +1,65 @@
 {
-  "name": "cop-lens",
-  "displayName": "cop-lens",
-  "description": "Context-Oriented Programming debugging and visualization tools",
-  "version": "0.0.1",
-  "engines": {
-    "vscode": "^1.104.0"
-  },
-  "categories": [
-    "Other"
-  ],
-  "activationEvents": [
-    "onLanguage:javascript"
-  ],
-  "main": "./extension.js",
-  "contributes": {
-    "commands": [
-      {
-        "command": "cop-lens.helloWorld",
-        "title": "Hello World"
-      },
-      {
-        "command": "cop-lens.goToLine",
-        "title": "Go to Line"
-      }
+    "name": "cop-lens",
+    "displayName": "cop-lens",
+    "description": "Context-Oriented Programming debugging and visualization tools",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.104.0"
+    },
+    "categories": [
+        "Other"
     ],
-    "views": {
-      "explorer": [
-        {
-          "id": "copOverview",
-          "name": "COP Overview",
-          "when": "resourceExtname == .js || resourceExtname == .ts"
+    "activationEvents": [
+        "onLanguage:javascript"
+    ],
+    "main": "./extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "cop-lens.helloWorld",
+                "title": "Hello World"
+            },
+            {
+                "command": "cop-lens.goToLine",
+                "title": "Go to Line"
+            }
+        ],
+        "views": {
+            "explorer": [
+                {
+                    "id": "copOverview",
+                    "name": "COP Overview",
+                    "when": "resourceExtname == .js || resourceExtname == .ts"
+                }
+            ]
         }
-      ]
+    },
+    "scripts": {
+        "lint": "eslint .",
+        "pretest": "npm run lint",
+        "test": "vscode-test",
+        "test:unit": "jest"
+    },
+    "jest": {
+        "testEnvironment": "node",
+        "testMatch": [
+            "**/test/unit/**/*.test.js"
+        ],
+        "testPathIgnorePatterns": [
+            "/node_modules/",
+            "/test/extension.test.js"
+        ]
+    },
+    "devDependencies": {
+        "@types/mocha": "^10.0.10",
+        "@types/node": "22.x",
+        "@types/vscode": "^1.104.0",
+        "@vscode/test-cli": "^0.0.11",
+        "@vscode/test-electron": "^2.5.2",
+        "eslint": "^9.34.0",
+        "jest": "^29.7.0"
+    },
+    "dependencies": {
+        "acorn": "^8.15.0"
     }
-  },
-  "scripts": {
-    "lint": "eslint .",
-    "pretest": "npm run lint",
-    "test": "vscode-test"
-  },
-  "devDependencies": {
-    "@types/vscode": "^1.104.0",
-    "@types/mocha": "^10.0.10",
-    "@types/node": "22.x",
-    "eslint": "^9.34.0",
-    "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^2.5.2"
-  }
 }
