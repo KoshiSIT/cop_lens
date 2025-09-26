@@ -1,11 +1,16 @@
-const { detectLayers } = require("../../src/parser/layerDetector");
+const { LayerDetector } = require("../../src/parser/layerDetector");
 const fs = require("fs");
 const path = require("path");
 
-describe("layerDetector", () => {
+describe("LayerDetector", () => {
+    let detector;
+
+    beforeEach(() => {
+        detector = new LayerDetector();
+    });
     test("should work with simple example", () => {
         const code = 'let layer1 = { condition: "x > 1" };';
-        const results = detectLayers(code);
+        const results = detector.detect(code);
         expect(results).toBeDefined();
         expect(results.length).toBe(1);
         expect(results[0]).toMatchObject({
@@ -19,7 +24,7 @@ describe("layerDetector", () => {
     test("should detect layer in example7.js", () => {
         const filepath = path.join(__dirname, "../../examples/example7.js");
         const code = fs.readFileSync(filepath, "utf8");
-        const results = detectLayers(code);
+        const results = detector.detect(code);
 
         expect(results).toHaveLength(1);
         expect(results[0]).toMatchObject({

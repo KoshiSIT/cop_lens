@@ -1,7 +1,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require("vscode");
-const { detectLayers } = require("./src/parser/layerDetector");
+const { LayerDetector } = require("./src/parser/layerDetector");
+const { RefinementDetector } = require("./src/parser/refinementDetector");
 const { COPTreeProvider } = require("./src/ui/treeProvider");
 const { setupCommands } = require("./src/commands");
 
@@ -26,10 +27,17 @@ function activate(context) {
 
         console.log("Analyzing current file for layers...");
         const code = editor.document.getText();
-        const results = detectLayers(code);
+        const layerDetector = new LayerDetector();
+        const results = layerDetector.detect(code);
+
+        const refinementDetector = new RefinementDetector();
+        const refinementResults = refinementDetector.detect(code);
 
         console.log(`Detected ${results.length} layers.`);
-        treeProvider.updateResults(results);
+        const allResults = [...results, ...refinementResults].sort(
+            (a, b) => a.line - b.line,
+        );
+        treeProvider.updateResults(allResults);
     }
 
     analyzeCurrentFile();
