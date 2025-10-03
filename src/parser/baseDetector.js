@@ -167,6 +167,13 @@ class BaseDetector {
         }
         return null;
     }
+
+    /**
+     * Reset detector state - to be overridden by subclasses
+     */
+    reset() {
+        // Base implementation does nothing
+    }
 }
 
 module.exports = { BaseDetector };

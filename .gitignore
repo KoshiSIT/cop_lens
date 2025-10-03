@@ -2,3 +2,8 @@ node_modules
 .vscode-test/
 *.vsix
 .env
+
+# Dependency Analysis Output (keep analysis tools but ignore generated files)
+analysis/**/dependency-*.svg
+analysis/**/dependency-*.html
+analysis/**/*-dependencies.svg
