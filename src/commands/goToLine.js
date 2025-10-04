@@ -37,12 +37,12 @@ function goToLine(lineNumber) {
     // Apply highlight
     editor.setDecorations(highlightDecoration, [lineRange]);
     
-    // Remove highlight after 2 seconds
+    // Remove highlight after 1.5 seconds
     setTimeout(() => {
         highlightDecoration.dispose();
-    }, 2000);
+    }, 1500);
     
-    console.log(`Navigated to line ${line + 1} with highlight`);
+    console.log(`Navigated to line ${line + 1} with highlight (1.5s)`);
 }
 
 /**
