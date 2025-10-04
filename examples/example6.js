@@ -1,4 +1,4 @@
-let {Signal, SignalComp, Layer, EMA, show} = require("../loader");
+let { Signal, SignalComp, Layer, EMA, show } = require("../loader");
 
 let t = new Signal(0, "t");
 //let h = new Signal(0, "h");
@@ -7,7 +7,7 @@ let ht = new SignalComp("t > 10", [t], "ht");
 //let hh = new SignalComp("h > 50", [h], "hh");
 
 let hto = new SignalComp("hto || ht", [ht], "hto");
-//hto.addSignal(hto);
+//hto.addSignal5(hto);
 
 t.value = 15;
 

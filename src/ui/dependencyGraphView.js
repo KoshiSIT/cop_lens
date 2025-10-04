@@ -346,10 +346,6 @@ class DependencyGraphView {
             <span class="file-info">• ${fileName}</span>
         </div>
         <div class="controls">
-            <button class="control-btn active" id="layout-cose" title="COSE Layout">COSE</button>
-            <button class="control-btn" id="layout-dagre" title="Dagre Layout">Dagre</button>
-            <button class="control-btn" id="layout-circle" title="Circle Layout">Circle</button>
-            <button class="control-btn" id="fit-btn" title="Fit to View">📐</button>
             <button class="control-btn" id="refresh-btn" title="Refresh Graph">🔄</button>
         </div>
     </div>
@@ -554,38 +550,12 @@ class DependencyGraphView {
             document.getElementById('node-info').innerHTML = info;
         });
 
-        // Layout controls
-        document.getElementById('layout-cose').addEventListener('click', () => {
-            setActiveButton('layout-cose');
-            cy.layout(cytoscapeConfig.layout).run();
-        });
-
-        document.getElementById('layout-dagre').addEventListener('click', () => {
-            setActiveButton('layout-dagre');
-            cy.layout({name: 'breadthfirst', directed: true, fit: true, padding: 30}).run();
-        });
-
-        document.getElementById('layout-circle').addEventListener('click', () => {
-            setActiveButton('layout-circle');
-            cy.layout({name: 'circle', fit: true, padding: 30}).run();
-        });
-
-        document.getElementById('fit-btn').addEventListener('click', () => {
-            cy.fit();
-        });
-
+        // Refresh button
         document.getElementById('refresh-btn').addEventListener('click', () => {
             vscode.postMessage({
                 command: 'refresh'
             });
         });
-
-        function setActiveButton(activeId) {
-            document.querySelectorAll('.control-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.getElementById(activeId).classList.add('active');
-        }
 
         // Initialize info panel
         document.getElementById('node-info').innerHTML = 

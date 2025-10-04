@@ -15,13 +15,19 @@ class GraphRenderer {
      * @returns {Object} Complete Cytoscape.js configuration
      */
     render(dependencyGraph) {
+        // Apply hierarchy levels to nodes
+        const nodesWithHierarchy = this.applyHierarchyToNodes(
+            dependencyGraph.nodes,
+            dependencyGraph.hierarchyLevels
+        );
+
         const cytoscapeConfig = {
             elements: {
-                nodes: this.processNodes(dependencyGraph.nodes),
+                nodes: this.processNodes(nodesWithHierarchy),
                 edges: this.processEdges(dependencyGraph.edges)
             },
             style: this.styleConfig,
-            layout: this.layoutConfig.cose,
+            layout: this.getHierarchyLayout(dependencyGraph.hierarchyLevels),
             metadata: {
                 ...dependencyGraph.summary,
                 generated: new Date().toISOString(),
@@ -30,6 +36,97 @@ class GraphRenderer {
         };
 
         return cytoscapeConfig;
+    }
+
+    /**
+     * Apply hierarchy levels to nodes for positioning
+     * @param {Array} nodes - Array of node objects
+     * @param {Map} hierarchyLevels - Map of nodeId -> level
+     * @returns {Array} Nodes with hierarchy level added
+     */
+    applyHierarchyToNodes(nodes, hierarchyLevels) {
+        if (!hierarchyLevels) {
+            console.warn('⚠️ No hierarchy levels provided, using default layout');
+            return nodes;
+        }
+
+        console.log('📊 Applying hierarchy to nodes...');
+        console.log('  Nodes:', nodes.length);
+        console.log('  Hierarchy levels:', hierarchyLevels.size);
+
+        const nodesWithHierarchy = nodes.map(node => {
+            const level = hierarchyLevels.get(node.data.id) || 0;
+            console.log(`    ${node.data.id}: level ${level}`);
+            
+            return {
+                ...node,
+                data: {
+                    ...node.data,
+                    hierarchyLevel: level
+                }
+            };
+        });
+
+        console.log('✅ Hierarchy applied to all nodes');
+        return nodesWithHierarchy;
+    }
+
+    /**
+     * Get hierarchy-based layout configuration
+     * @param {Map} hierarchyLevels - Map of nodeId -> level
+     * @returns {Object} Cytoscape layout configuration
+     */
+    getHierarchyLayout(hierarchyLevels) {
+        if (!hierarchyLevels || hierarchyLevels.size === 0) {
+            console.warn('⚠️ No hierarchy levels, falling back to COSE layout');
+            return this.layoutConfig.cose;
+        }
+
+        console.log('📊 Calculating hierarchy layout...');
+        console.log('  Total nodes:', hierarchyLevels.size);
+
+        // Group nodes by level
+        const nodesByLevel = new Map();
+        for (const [nodeId, level] of hierarchyLevels) {
+            if (!nodesByLevel.has(level)) {
+                nodesByLevel.set(level, []);
+            }
+            nodesByLevel.get(level).push(nodeId);
+        }
+
+        console.log('  Levels found:', nodesByLevel.size);
+        for (const [level, nodes] of nodesByLevel) {
+            console.log(`    Level ${level}: ${nodes.length} nodes`);
+        }
+
+        // Pre-calculate positions for all nodes
+        const positions = {};
+        const levelSpacing = 150;
+        const nodeSpacing = 200;
+
+        for (const [level, nodesAtLevel] of nodesByLevel) {
+            const nodeCount = nodesAtLevel.length;
+            
+            nodesAtLevel.forEach((nodeId, index) => {
+                // Center nodes horizontally
+                const xOffset = (index - (nodeCount - 1) / 2) * nodeSpacing;
+                positions[nodeId] = {
+                    x: xOffset,
+                    y: level * levelSpacing
+                };
+                
+                console.log(`    ${nodeId}: (${xOffset}, ${level * levelSpacing})`);
+            });
+        }
+
+        console.log('✅ Hierarchy positions calculated:', Object.keys(positions).length, 'nodes');
+
+        return {
+            name: 'preset',
+            positions: positions,
+            fit: true,
+            padding: 50
+        };
     }
 
     /**
@@ -238,7 +335,7 @@ class GraphRenderer {
                 style: {
                     'background-color': '#FF9800',
                     'label': 'data(displayName)',
-                    'shape': 'ellipse',
+                    'shape': 'round-rectangle',
                     'border-color': '#E65100',
                     'font-size': '10px'
                 }
@@ -254,6 +351,20 @@ class GraphRenderer {
                     'border-color': '#424242',
                     'font-size': '11px',
                     'opacity': 0.8
+                }
+            },
+
+            // Method nodes (yellow)
+            {
+                selector: 'node[type="method"]',
+                style: {
+                    'background-color': '#FFC107',
+                    'label': 'data(name)',
+                    'shape': 'round-rectangle',
+                    'border-color': '#FF6F00',
+                    'font-size': '10px',
+                    'width': 70,
+                    'height': 70
                 }
             },
 
@@ -314,6 +425,18 @@ class GraphRenderer {
                     'target-arrow-color': '#BDBDBD',
                     'width': 1,
                     'opacity': 0.6
+                }
+            },
+
+            // hasMethod edges (thin dotted)
+            {
+                selector: 'edge[type="hasMethod"]',
+                style: {
+                    'line-color': '#9E9E9E',
+                    'target-arrow-color': '#9E9E9E',
+                    'width': 1,
+                    'line-style': 'dotted',
+                    'opacity': 0.5
                 }
             },
 

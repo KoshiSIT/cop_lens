@@ -1,0 +1,19 @@
+{
+  "name": "remote-editor-example",
+  "version": "1.0.0",
+  "description": "Remote Editor example with COP (Context-Oriented Programming)",
+  "main": "index.js",
+  "scripts": {
+    "demo": "node demo.js"
+  },
+  "keywords": [
+    "COP",
+    "context-oriented-programming",
+    "EMA",
+    "layers"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+  }
+}

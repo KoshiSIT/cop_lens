@@ -3,6 +3,7 @@
  */
 
 const ObjectDependencyDetector = require('./src/parser/objectDependencyDetector');
+const GraphRenderer = require('./src/graph/graphRenderer');
 const fs = require('fs');
 
 console.log('=== MANUAL DEBUG TEST ===');
@@ -62,6 +63,27 @@ testFiles.forEach(filePath => {
             for (const [className, classInfo] of detector.classes) {
                 console.log(`  - ${className} at line ${classInfo.line}`);
             }
+        }
+        
+        // Test GraphRenderer
+        console.log(`
+🎨 Testing GraphRenderer...`);
+        const renderer = new GraphRenderer();
+        const cytoscapeConfig = renderer.render(dependencyGraph);
+        
+        console.log(`  Elements: ${cytoscapeConfig.elements.nodes.length} nodes, ${cytoscapeConfig.elements.edges.length} edges`);
+        console.log(`  Layout type: ${cytoscapeConfig.layout.name}`);
+        
+        if (cytoscapeConfig.layout.name === 'preset') {
+            console.log(`  ✅ Using preset (hierarchy) layout`);
+            console.log(`  Positions for first 3 nodes:`);
+            const nodes = cytoscapeConfig.elements.nodes.slice(0, 3);
+            nodes.forEach(node => {
+                const pos = cytoscapeConfig.layout.positions[node.data.id];
+                console.log(`    ${node.data.id}: (${pos.x}, ${pos.y}) level=${node.data.hierarchyLevel}`);
+            });
+        } else {
+            console.log(`  ⚠️ Using ${cytoscapeConfig.layout.name} layout (not hierarchy)`);
         }
         
     } catch (error) {

@@ -13,6 +13,7 @@ class ObjectDependencyDetector extends BaseDetector {
         this.classes = new Map();     // className -> ClassInfo
         this.instances = new Map();   // instanceName -> InstanceInfo  
         this.dependencies = [];       // DependencyInfo[]
+        this.methods = new Map();     // methodKey -> MethodInfo
         this.currentClass = null;     // Track current class context
     }
 
@@ -32,6 +33,8 @@ class ObjectDependencyDetector extends BaseDetector {
                 case 'MethodDefinition':
                     if (node.kind === 'constructor') {
                         results.push(...this.detectConstructor(node));
+                    } else if (node.kind === 'method') {
+                        results.push(this.detectMethod(node));
                     }
                     break;
                 case 'NewExpression':
@@ -121,6 +124,40 @@ class ObjectDependencyDetector extends BaseDetector {
         }
 
         return results;
+    }
+
+
+    /**
+     * Detect method definitions
+     * @param {Object} node - MethodDefinition AST node
+     * @returns {Object} MethodInfo object
+     */
+    detectMethod(node) {
+        if (!this.currentClass) return null;
+        
+        const methodName = node.key.name;
+        const methodKey = `${this.currentClass}_${methodName}`;
+        
+        const methodInfo = {
+            type: 'method',
+            id: methodKey,
+            name: methodName,
+            className: this.currentClass,
+            file: this.currentFile || 'unknown',
+            line: node.loc ? node.loc.start.line : 0,
+            description: `${this.currentClass}.${methodName}()`,
+            params: node.value.params.map(param => param.name || 'unknown')
+        };
+        
+        this.methods.set(methodKey, methodInfo);
+        
+        // クラス情報にメソッドを追加
+        const classInfo = this.classes.get(this.currentClass);
+        if (classInfo) {
+            classInfo.methods.push(methodInfo);
+        }
+        
+        return methodInfo;
     }
 
     /**
@@ -310,6 +347,32 @@ class ObjectDependencyDetector extends BaseDetector {
             });
         }
 
+        // Add method nodes
+        for (const [methodKey, methodInfo] of this.methods) {
+            nodes.push({
+                data: {
+                    id: methodInfo.id,
+                    name: methodInfo.name,
+                    type: 'method',
+                    className: methodInfo.className,
+                    file: methodInfo.file,
+                    line: methodInfo.line,
+                    description: methodInfo.description,
+                    params: methodInfo.params || []
+                }
+            });
+            
+            // Add edge: class -> method
+            edges.push({
+                data: {
+                    source: methodInfo.className,
+                    target: methodInfo.id,
+                    type: 'hasMethod',
+                    description: `${methodInfo.className} has method ${methodInfo.name}()`
+                }
+            });
+        }
+
         // Add dependency edges
         for (const dep of this.dependencies) {
             let targetId = dep.target;
@@ -393,12 +456,23 @@ class ObjectDependencyDetector extends BaseDetector {
             }
         }
 
+        // Calculate hierarchy levels
+        const { calculateHierarchyLevels } = require('./hierarchyCalculator');
+        const hierarchyLevels = calculateHierarchyLevels(
+            this.classes,
+            this.instances,
+            this.methods,
+            edges
+        );
+
         return {
             nodes,
             edges,
+            hierarchyLevels,
             summary: {
                 classes: this.classes.size,
                 instances: this.instances.size,
+                methods: this.methods.size,
                 dependencies: this.dependencies.length
             }
         };
@@ -412,6 +486,7 @@ class ObjectDependencyDetector extends BaseDetector {
         this.classes.clear();
         this.instances.clear();
         this.dependencies = [];
+        this.methods.clear();
         this.currentClass = null;
         this.parameterClassMap = new Map();
     }
@@ -425,4 +500,4 @@ class ObjectDependencyDetector extends BaseDetector {
     }
 }
 
-module.exports = ObjectDependencyDetector;
+module.exports = { ObjectDependencyDetector };

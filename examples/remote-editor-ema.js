@@ -14,19 +14,36 @@ const {
 
 /**
  * RemoteEditor class - main orchestrator (remote-editor)
- * Has 4 dependencies: editor, workRemote, server, onlineLayer
+ * Properties: editor (EditorWidget instance), server, onlineLayer
+ * Methods: workRemote()
  */
 class RemoteEditor {
     constructor() {
-        // Create instances (orange nodes)
-        this.editor = new Editor();
-        this.workRemote = new WorkRemote();
-        this.server = new Server();
+        // editor is an instance of EditorWidget (orange node -> green node)
+        this.editor = new EditorWidget();
+        
+        // server is a simple object property
+        this.server = {
+            baseUrl: "https://remote-server.com",
+            connected: false,
+            send: function(file, text) {
+                console.log(`  → Server.send("${file}", "${text}") - uploading to ${this.baseUrl}`);
+                return { status: "uploaded", file: file, size: text.length };
+            },
+            connect: function() {
+                this.connected = true;
+                console.log("Server: connection established");
+            },
+            disconnect: function() {
+                this.connected = false;
+                console.log("Server: connection closed");
+            }
+        };
 
         // Network status signal for layer condition
         this.networkStatus = new Signal(false); // false = offline, true = online
 
-        // Layer definition object (will become onlineLayer instance via deploy)
+        // onlineLayer property - layer definition object
         this.onlineLayerDefinition = {
             condition: "networkConnected === true",
             name: "onlineEditor",
@@ -39,6 +56,15 @@ class RemoteEditor {
         };
 
         this.setupCOP();
+    }
+
+    // workRemote is a METHOD (not a class!)
+    workRemote() {
+        console.log("RemoteEditor.workRemote() - managing remote work session");
+        return {
+            sessionId: "session_" + Date.now(),
+            isActive: true
+        };
     }
 
     setupCOP() {
@@ -55,7 +81,7 @@ class RemoteEditor {
             function(text) {
                 console.log("onlineEditor: server.send(this.file, text)");
                 // Send to server first
-                this.server.send(this.file, text);
+                this.server.send("document.txt", text);
                 // Then call original save (proceed)
                 Layer.proceed(text);
             }.bind(this),
@@ -81,130 +107,36 @@ class RemoteEditor {
 
 /**
  * EditorWidget class - UI component (EditorWidget)
- * Depends on editor instance and has render instance
+ * Methods: save(), render()
  */
 class EditorWidget {
-    constructor(editor) {
-        this.editor = editor; // depends on editor instance
-        this.render = new Render(); // has render instance
-    }
-
-    display() {
-        console.log("EditorWidget: displaying editor");
-        return this.render.draw();
-    }
-
-    triggerSave() {
-        const content = "Sample document content";
-        console.log("EditorWidget: triggering save operation");
-        return this.editor.save(content);
-    }
-}
-
-// ========== Instances/Objects (Orange nodes in diagram) ==========
-
-/**
- * Editor instance - handles document editing
- */
-class Editor {
     constructor() {
         this.file = "document.txt";
         this.content = "";
         this.localStorage = {
             write: (file, text) => {
-                console.log(
-                    `original: save(text) { this.localStorage.write(this.file, text); }`,
-                );
+                console.log(`original: save(text) { this.localStorage.write(this.file, text); }`);
                 console.log(`  → Saved "${text}" to local file: ${file}`);
                 return `saved_to_${file}`;
             },
         };
     }
 
+    // save is a METHOD (not a class!)
     save(text) {
-        console.log("Editor.save() called");
+        console.log("EditorWidget.save() called");
         return this.localStorage.write(this.file, text);
     }
-}
 
-/**
- * WorkRemote instance - manages remote work session
- */
-class WorkRemote {
-    constructor() {
-        this.sessionId = null;
-        this.isActive = false;
-    }
-
-    startSession() {
-        this.sessionId = "session_" + Date.now();
-        this.isActive = true;
-        console.log(`WorkRemote: started session ${this.sessionId}`);
-    }
-
-    endSession() {
-        console.log(`WorkRemote: ended session ${this.sessionId}`);
-        this.isActive = false;
-        this.sessionId = null;
-    }
-}
-
-/**
- * Server instance - handles server communication
- */
-class Server {
-    constructor() {
-        this.connected = false;
-        this.baseUrl = "https://remote-server.com";
-    }
-
-    send(file, text) {
-        console.log(
-            `  → Server.send("${file}", "${text}") - uploading to ${this.baseUrl}`,
-        );
-        return { status: "uploaded", file: file, size: text.length };
-    }
-
-    connect() {
-        this.connected = true;
-        console.log("Server: connection established");
-    }
-
-    disconnect() {
-        this.connected = false;
-        console.log("Server: connection closed");
-    }
-}
-
-/**
- * Render instance - handles UI rendering
- */
-class Render {
-    constructor() {
-        this.canvas = "canvas-element";
-    }
-
-    draw() {
-        console.log("Render: drawing editor interface");
+    // render is a METHOD (not a class!)
+    render() {
+        console.log("EditorWidget.render() - drawing editor interface");
         return "<editor-ui>Rendered Editor</editor-ui>";
     }
-}
 
-/**
- * Save instance - represents save functionality
- * This could be extended with additional save operations
- */
-class Save {
-    constructor() {
-        this.lastSaveTime = null;
-        this.saveCount = 0;
-    }
-
-    execute(data, method = "local") {
-        this.lastSaveTime = new Date();
-        this.saveCount++;
-        console.log(`Save.execute: method=${method}, count=${this.saveCount}`);
-        return { saved: true, method: method, timestamp: this.lastSaveTime };
+    display() {
+        console.log("EditorWidget: displaying editor");
+        return this.render();
     }
 }
 
@@ -214,8 +146,6 @@ console.log("=== Initializing Remote Editor System ===");
 
 // Create the main system following diagram structure
 const remoteEditor = new RemoteEditor();
-const editorWidget = new EditorWidget(remoteEditor.editor);
-const saveInstance = new Save();
 
 console.log("\n=== Initial System State (Offline) ===");
 console.log("Layer onlineEditor: Just deactivated");
@@ -225,27 +155,27 @@ console.log("- Has 5 Events");
 
 // Test save functionality in offline mode
 console.log("\n--- Testing Save in Offline Mode ---");
-editorWidget.triggerSave();
+remoteEditor.editor.save("Sample document content");
 
 console.log("\n=== Network Connection Established ===");
 // Simulate network connection - this will activate the layer
 remoteEditor.server.connect();
-remoteEditor.workRemote.startSession();
+const session = remoteEditor.workRemote(); // Call workRemote METHOD
+console.log(`WorkRemote session started: ${session.sessionId}`);
 remoteEditor.goOnline(); // This triggers layer activation
 
 // Test save functionality in online mode (blue arrows active)
 console.log("\n--- Testing Save in Online Mode (Blue Arrows Active) ---");
-editorWidget.triggerSave();
+remoteEditor.editor.save("Sample document content");
 
 console.log("\n=== Network Connection Lost ===");
 // Simulate network disconnection - this will deactivate the layer
 remoteEditor.goOffline(); // This triggers layer deactivation
 remoteEditor.server.disconnect();
-remoteEditor.workRemote.endSession();
 
 // Test save functionality back in offline mode
 console.log("\n--- Testing Save After Going Offline ---");
-editorWidget.triggerSave();
+remoteEditor.editor.save("Sample document content");
 
 console.log("\n=== Layer Status Information ===");
 // Display layer information similar to yellow boxes in diagram
@@ -272,17 +202,8 @@ module.exports = {
     RemoteEditor,
     EditorWidget,
 
-    // Instances for dependency analysis
-    Editor,
-    WorkRemote,
-    Server,
-    Render,
-    Save,
-
     // Example instances for testing
     remoteEditor,
-    editorWidget,
-    saveInstance,
 
     // EMA framework reference
     EMA,

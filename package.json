@@ -10,7 +10,8 @@
         "Other"
     ],
     "activationEvents": [
-        "onLanguage:javascript"
+        "onLanguage:javascript",
+        "onCommand:cop-lens.showDependencyGraph"
     ],
     "main": "./extension.js",
     "contributes": {
