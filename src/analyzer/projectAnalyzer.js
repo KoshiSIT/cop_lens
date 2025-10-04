@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const { ObjectDependencyDetector } = require('../parser/objectDependencyDetector');
-const { BaseDetector } = require('../parser/baseDetector');
+const { BabelObjectDependencyDetector } = require('../parser/babelObjectDependencyDetector');
+const { BabelBaseDetector } = require('../parser/babelBaseDetector');
 
 /**
  * ProjectAnalyzer - Analyzes dependency relationships across the entire project
@@ -151,7 +151,7 @@ class ProjectAnalyzer {
     analyzeFile(filePath) {
         try {
             const code = fs.readFileSync(filePath, 'utf8');
-            const detector = new ObjectDependencyDetector();
+            const detector = new BabelObjectDependencyDetector();
             detector.setCurrentFile(filePath);
             detector.detect(code);
             return detector.getDependencyGraph();
@@ -169,7 +169,7 @@ class ProjectAnalyzer {
     detectImports(filePath) {
         try {
             const code = fs.readFileSync(filePath, 'utf8');
-            const baseDetector = new BaseDetector();
+            const baseDetector = new BabelBaseDetector();
             const ast = baseDetector.parseCode(code);
             
             const imports = [];

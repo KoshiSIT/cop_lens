@@ -1,4 +1,4 @@
-const { RefinementDetector } = require("../../src/parser/refinementDetector");
+const { BabelRefinementDetector: RefinementDetector } = require("../../src/parser/babelRefinementDetector");
 
 describe("RefinementDetector", () => {
     let detector;

@@ -2,7 +2,7 @@
  * Manual test to debug detection issues
  */
 
-const ObjectDependencyDetector = require('./src/parser/objectDependencyDetector');
+const { BabelObjectDependencyDetector: ObjectDependencyDetector } = require('./src/parser/babelObjectDependencyDetector');
 const GraphRenderer = require('./src/graph/graphRenderer');
 const fs = require('fs');
 

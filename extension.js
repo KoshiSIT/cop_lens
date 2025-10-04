@@ -1,9 +1,9 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require("vscode");
-const { LayerDetector } = require("./src/parser/layerDetector");
-const { RefinementDetector } = require("./src/parser/refinementDetector");
-const { ObjectDependencyDetector } = require("./src/parser/objectDependencyDetector");
+const { BabelLayerDetector } = require("./src/parser/babelLayerDetector");
+const { BabelRefinementDetector } = require("./src/parser/babelRefinementDetector");
+const { BabelObjectDependencyDetector } = require("./src/parser/babelObjectDependencyDetector");
 const { ProjectAnalyzer } = require("./src/analyzer/projectAnalyzer");
 const { COPTreeProvider } = require("./src/ui/treeProvider");
 const DependencyGraphView = require("./src/ui/dependencyGraphView");
@@ -35,10 +35,10 @@ function activate(context) {
 
             console.log("Analyzing current file for layers...");
             const code = editor.document.getText();
-            const layerDetector = new LayerDetector();
+            const layerDetector = new BabelLayerDetector();
             const results = layerDetector.detect(code);
 
-            const refinementDetector = new RefinementDetector();
+            const refinementDetector = new BabelRefinementDetector();
             const refinementResults = refinementDetector.detect(code);
 
             console.log(`Detected ${results.length} layers.`);

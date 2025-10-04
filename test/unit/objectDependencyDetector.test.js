@@ -3,7 +3,7 @@
  * Tests basic class and property detection functionality
  */
 
-const ObjectDependencyDetector = require('../../src/parser/objectDependencyDetector');
+const { BabelObjectDependencyDetector: ObjectDependencyDetector } = require('../../src/parser/babelObjectDependencyDetector');
 const acorn = require('acorn');
 
 describe('ObjectDependencyDetector', () => {

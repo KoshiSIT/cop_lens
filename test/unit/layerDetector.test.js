@@ -1,4 +1,4 @@
-const { LayerDetector } = require("../../src/parser/layerDetector");
+const { BabelLayerDetector: LayerDetector } = require("../../src/parser/babelLayerDetector");
 const fs = require("fs");
 const path = require("path");
 
