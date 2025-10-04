@@ -273,7 +273,6 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
     getDependencyGraph() {
         const nodes = [];
         const edges = [];
-        const builtInClasses = new Set(); // Track built-in classes we need to add
         
         // Add class nodes
         for (const [className, classInfo] of this.classes) {
@@ -306,30 +305,6 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
             });
         }
         
-        // First pass: collect all referenced classes that don't exist in our class map
-        for (const dep of this.dependencies) {
-            if (dep.type === 'composition' && !this.classes.has(dep.target)) {
-                builtInClasses.add(dep.target);
-            }
-        }
-        
-        // Add built-in class nodes (Date, Signal, etc.)
-        for (const builtInClass of builtInClasses) {
-            nodes.push({
-                data: {
-                    id: builtInClass,
-                    name: builtInClass,
-                    type: 'class',
-                    file: 'built-in',
-                    line: 0,
-                    description: `Built-in ${builtInClass} class`,
-                    properties: 0,
-                    methods: 0,
-                    builtIn: true // Mark as built-in
-                }
-            });
-        }
-        
         // Add dependency edges
         for (const dep of this.dependencies) {
             let targetId = dep.target;
@@ -348,13 +323,33 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
                 }
             });
             
+            // For composition, add instance -> class edge
             if (dep.type === 'composition') {
+                const targetClassExists = this.classes.has(dep.target);
+                
+                if (!targetClassExists) {
+                    // Add external class node if it doesn't exist yet
+                    const externalNodeExists = nodes.some(n => n.data.id === dep.target);
+                    if (!externalNodeExists) {
+                        nodes.push({
+                            data: {
+                                id: dep.target,
+                                name: dep.target,
+                                type: 'external',
+                                file: 'external library',
+                                line: 0,
+                                description: `External class: ${dep.target}`
+                            }
+                        });
+                    }
+                }
+                
                 edges.push({
                     data: {
                         source: targetId,
                         target: dep.target,
                         type: 'instanceOf',
-                        description: `${dep.property} is instance of ${dep.target}`
+                        description: `${dep.property} is instance of ${dep.target}${targetClassExists ? '' : ' (external)'}`
                     }
                 });
             }
