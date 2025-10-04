@@ -273,6 +273,7 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
     getDependencyGraph() {
         const nodes = [];
         const edges = [];
+        const builtInClasses = new Set(); // Track built-in classes we need to add
         
         // Add class nodes
         for (const [className, classInfo] of this.classes) {
@@ -301,6 +302,30 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
                     file: instanceInfo.file,
                     line: instanceInfo.line,
                     description: instanceInfo.description
+                }
+            });
+        }
+        
+        // First pass: collect all referenced classes that don't exist in our class map
+        for (const dep of this.dependencies) {
+            if (dep.type === 'composition' && !this.classes.has(dep.target)) {
+                builtInClasses.add(dep.target);
+            }
+        }
+        
+        // Add built-in class nodes (Date, Signal, etc.)
+        for (const builtInClass of builtInClasses) {
+            nodes.push({
+                data: {
+                    id: builtInClass,
+                    name: builtInClass,
+                    type: 'class',
+                    file: 'built-in',
+                    line: 0,
+                    description: `Built-in ${builtInClass} class`,
+                    properties: 0,
+                    methods: 0,
+                    builtIn: true // Mark as built-in
                 }
             });
         }
