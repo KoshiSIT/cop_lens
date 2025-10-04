@@ -19,10 +19,10 @@ class BabelRefinementDetector extends BabelBaseDetector {
                 if (callExpr.callee.type === 'MemberExpression' &&
                     callExpr.callee.object.name === 'EMA') {
                     
-                    // Verify this is EMAjs
-                    if (!this.isFromEMAjs(path, 'EMA')) {
-                        return;
-                    }
+                    // Verify this is EMAjs (optional check - commented out for flexibility)
+                    // if (!this.isFromEMAjs(path, 'EMA')) {
+                    //     return;
+                    // }
                     
                     const methodName = callExpr.callee.property.name;
                     
@@ -49,10 +49,11 @@ class BabelRefinementDetector extends BabelBaseDetector {
                     callExpr.callee.object.name === 'Layer' &&
                     callExpr.callee.property.name === 'proceed') {
                     
-                    if (this.isFromEMAjs(path, 'Layer')) {
+                    // Optional: verify from EMAjs
+                    // if (this.isFromEMAjs(path, 'Layer')) {
                         const proceedInfo = this.extractProceed(path);
                         if (proceedInfo) results.push(proceedInfo);
-                    }
+                    // }
                 }
             }
         };
@@ -95,7 +96,17 @@ class BabelRefinementDetector extends BabelBaseDetector {
         for (const prop of objNode.properties) {
             if (prop.type === 'ObjectProperty') {
                 const key = prop.key.name || prop.key.value;
-                const value = prop.value.name || prop.value.value;
+                
+                // Handle different value types
+                let value = null;
+                if (prop.value.type === 'Identifier') {
+                    value = prop.value.name;
+                } else if (prop.value.type === 'MemberExpression') {
+                    // screen.gyroscope → "screen.gyroscope"
+                    value = this.getMemberExpressionName(prop.value);
+                } else if (prop.value.type === 'Literal') {
+                    value = prop.value.value;
+                }
                 
                 if (key && value) {
                     mappings.push({ key, value });
@@ -104,6 +115,23 @@ class BabelRefinementDetector extends BabelBaseDetector {
         }
         
         return mappings.length > 0 ? mappings : null;
+    }
+    
+    /**
+     * Get full name of MemberExpression (e.g., "screen.gyroscope")
+     * @param {Object} node - MemberExpression node
+     * @returns {string} Full member expression name
+     */
+    getMemberExpressionName(node) {
+        if (node.type === 'Identifier') {
+            return node.name;
+        }
+        if (node.type === 'MemberExpression') {
+            const object = this.getMemberExpressionName(node.object);
+            const property = node.property.name;
+            return `${object}.${property}`;
+        }
+        return '';
     }
 
     /**

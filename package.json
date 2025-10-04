@@ -70,11 +70,13 @@
     "jest": {
         "testEnvironment": "node",
         "testMatch": [
-            "**/test/unit/**/*.test.js"
+            "**/test/unit/**/*.test.js",
+            "**/test/integration/**/*.test.js"
         ],
         "testPathIgnorePatterns": [
             "/node_modules/",
-            "/test/extension.test.js"
+            "/test/extension.test.js",
+            "/.vscode-test/"
         ]
     },
     "devDependencies": {
