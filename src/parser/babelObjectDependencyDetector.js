@@ -305,31 +305,34 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
             });
         }
         
-        // Add method nodes
-        for (const [methodKey, methodInfo] of this.methods) {
-            nodes.push({
-                data: {
-                    id: methodInfo.id,
-                    name: methodInfo.name,
-                    type: 'method',
-                    className: methodInfo.className,
-                    file: methodInfo.file,
-                    line: methodInfo.line,
-                    description: methodInfo.description,
-                    params: methodInfo.params || []
-                }
-            });
-            
-            // Add edge: class -> method
-            edges.push({
-                data: {
-                    source: methodInfo.className,
-                    target: methodInfo.id,
-                    type: 'hasMethod',
-                    description: `${methodInfo.className} has method ${methodInfo.name}()`
-                }
-            });
-        }
+        // NOTE: Method nodes are intentionally excluded from the dependency graph
+        // to keep the visualization focused on class and instance relationships.
+        // Uncomment the following code if you want to include method nodes:
+        
+        // for (const [methodKey, methodInfo] of this.methods) {
+        //     nodes.push({
+        //         data: {
+        //             id: methodInfo.id,
+        //             name: methodInfo.name,
+        //             type: 'method',
+        //             className: methodInfo.className,
+        //             file: methodInfo.file,
+        //             line: methodInfo.line,
+        //             description: methodInfo.description,
+        //             params: methodInfo.params || []
+        //         }
+        //     });
+        //     
+        //     // Add edge: class -> method
+        //     edges.push({
+        //         data: {
+        //             source: methodInfo.className,
+        //             target: methodInfo.id,
+        //             type: 'hasMethod',
+        //             description: `${methodInfo.className} has method ${methodInfo.name}()`
+        //         }
+        //     });
+        // }
         
         // Add dependency edges
         for (const dep of this.dependencies) {
