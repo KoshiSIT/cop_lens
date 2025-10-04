@@ -13,14 +13,36 @@ function goToLine(lineNumber) {
     // initialize to first line if no editor or invalid line number
     const line = Math.max(0, (lineNumber || 1) - 1);
     const position = new vscode.Position(line, 0);
+    
+    // Get the full line range
+    const lineRange = editor.document.lineAt(line).range;
+    
     // move cursor to the line
     editor.selection = new vscode.Selection(position, position);
+    
     // display the line in the center of the view
     editor.revealRange(
         new vscode.Range(position, position),
         vscode.TextEditorRevealType.InCenter,
     );
-    console.log(`Navigated to line ${line + 1}`);
+    
+    // ✨ ハイライト追加
+    const highlightDecoration = vscode.window.createTextEditorDecorationType({
+        backgroundColor: new vscode.ThemeColor('editor.findMatchHighlightBackground'),
+        border: '2px solid',
+        borderColor: new vscode.ThemeColor('editor.findMatchBorder'),
+        isWholeLine: true
+    });
+    
+    // Apply highlight
+    editor.setDecorations(highlightDecoration, [lineRange]);
+    
+    // Remove highlight after 2 seconds
+    setTimeout(() => {
+        highlightDecoration.dispose();
+    }, 2000);
+    
+    console.log(`Navigated to line ${line + 1} with highlight`);
 }
 
 /**
