@@ -305,6 +305,32 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
             });
         }
         
+        // Add method nodes
+        for (const [methodKey, methodInfo] of this.methods) {
+            nodes.push({
+                data: {
+                    id: methodInfo.id,
+                    name: methodInfo.name,
+                    type: 'method',
+                    className: methodInfo.className,
+                    file: methodInfo.file,
+                    line: methodInfo.line,
+                    description: methodInfo.description,
+                    params: methodInfo.params || []
+                }
+            });
+            
+            // Add edge: class -> method
+            edges.push({
+                data: {
+                    source: methodInfo.className,
+                    target: methodInfo.id,
+                    type: 'hasMethod',
+                    description: `${methodInfo.className} has method ${methodInfo.name}()`
+                }
+            });
+        }
+        
         // Add dependency edges
         for (const dep of this.dependencies) {
             let targetId = dep.target;
@@ -361,6 +387,7 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
             summary: {
                 classes: this.classes.size,
                 instances: this.instances.size,
+                methods: this.methods.size,
                 dependencies: this.dependencies.length
             }
         };
