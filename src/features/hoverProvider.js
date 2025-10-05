@@ -4,6 +4,7 @@
  * 責務:
  * - カーソル位置からエンティティを検索
  * - Hover表示用のコンテンツ生成
+ * - ジャンプ可能なリンクの生成
  */
 class HoverProvider {
     constructor(analysisResult, globalStore = null) {
@@ -122,130 +123,99 @@ class HoverProvider {
     }
 
     /**
-     * Layer用Hoverコンテンツ
+     * Layer用Hoverコンテンツ（ジャンプリンク付き）
      */
     generateLayerHover(entity) {
         const { name, data } = entity;
-        let content = `### 🔵 Layer Instance: \`${name}\`
-
-`;
+        const lines = [];
+        
+        lines.push(`### 🔵 Layer Instance: \`${name}\``);
+        lines.push('');
 
         // Layer name
         if (data.layerName && data.layerName !== name) {
-            content += `**Layer Name:** \`${data.layerName}\`
-
-`;
+            lines.push(`**Layer Name:** \`${data.layerName}\``);
+            lines.push('');
         }
 
-        // Declaration
-        content += `**Declared at:** line ${entity.line}
-
-`;
+        // Declaration (with jump link)
+        lines.push(`**Declared at:** line ${entity.line} ${this.makeJumpLink(entity.line)}`);
+        lines.push('');
 
         // --- Condition Section ---
         if (data.condition && data.condition !== 'not defined') {
-            content += `---
-
-`;
-            content += `### 📋 Condition
-
-`;
-            content += `\`\`\`javascript
-${data.condition}
-\`\`\`
-
-`;
+            lines.push('---');
+            lines.push('');
+            lines.push('### 📋 Condition');
+            lines.push('');
+            lines.push('```javascript');
+            lines.push(data.condition);
+            lines.push('```');
+            lines.push('');
             
             if (data.conditionType) {
                 const typeLabel = data.conditionType === 'SignalComp' ? '🔄 SignalComp (reactive)' : '📝 String';
-                content += `**Type:** ${typeLabel}
-
-`;
+                lines.push(`**Type:** ${typeLabel}`);
+                lines.push('');
             }
             
             if (data.conditionLine) {
-                content += `**Defined at:** line ${data.conditionLine}
-
-`;
+                lines.push(`**Defined at:** line ${data.conditionLine} ${this.makeJumpLink(data.conditionLine)}`);
+                lines.push('');
             }
         } else {
-            content += `⚠️ **Condition:** Not defined
-
-`;
+            lines.push('⚠️ **Condition:** Not defined');
+            lines.push('');
         }
 
         // --- Lifecycle Callbacks Section ---
         const hasCallbacks = data.onEnter || data.onExit;
         if (hasCallbacks) {
-            content += `---
-
-`;
-            content += `### 🔄 Lifecycle Callbacks
-
-`;
+            lines.push('---');
+            lines.push('');
+            lines.push('### 🔄 Lifecycle Callbacks');
+            lines.push('');
 
             if (data.onEnter) {
                 const funcType = data.onEnter.functionType === 'arrow' ? '(arrow)' : '(regular)';
-                content += `**onEnter** ${funcType}  
-`;
-                content += `└─ Defined at line ${data.onEnter.line}
-
-`;
+                lines.push(`**onEnter** ${funcType}`);
+                lines.push(`└─ Defined at line ${data.onEnter.line} ${this.makeJumpLink(data.onEnter.line)}`);
+                lines.push('');
             }
 
             if (data.onExit) {
                 const funcType = data.onExit.functionType === 'arrow' ? '(arrow)' : '(regular)';
-                content += `**onExit** ${funcType}  
-`;
-                content += `└─ Defined at line ${data.onExit.line}
-
-`;
+                lines.push(`**onExit** ${funcType}`);
+                lines.push(`└─ Defined at line ${data.onExit.line} ${this.makeJumpLink(data.onExit.line)}`);
+                lines.push('');
             }
         }
 
         // --- Refinements Section ---
         const refinements = this.findRelatedRefinements(name);
         if (refinements.length > 0) {
-            content += `---
-
-`;
-            content += `### ✨ Refinements (${refinements.length})
-
-`;
+            lines.push('---');
+            lines.push('');
+            lines.push(`### ✨ Refinements (${refinements.length})`);
+            lines.push('');
             
             refinements.forEach(ref => {
                 const target = ref.targetObject || ref.targetClass || 'unknown';
                 const method = ref.methodName || 'unknown';
-                content += `• \`${target}.${method}()\` at line ${ref.line}
-`;
+                lines.push(`• \`${target}.${method}()\` at line ${ref.line} ${this.makeJumpLink(ref.line)}`);
             });
-            content += `
-`;
+            lines.push('');
         }
 
-        return content;
+        return lines.join('\n');
     }
 
     /**
-     * 指定Layerに関連するRefinementを検索
-     * @param {string} layerName - Layer instance名
-     * @returns {Array} 関連するRefinement配列
-     */
-    findRelatedRefinements(layerName) {
-        if (!this.result || !this.result.refinements) {
-            return [];
-        }
-
-        return this.result.refinements.filter(ref => {
-            return ref.layerObject === layerName;
-        });
-    }
-
-    /**
-     * Refinement用Hoverコンテンツ
+     * Refinement用Hoverコンテンツ（ジャンプリンク付き）
      */
     generateRefinementHover(entity) {
         const { name, data } = entity;
+        const lines = [];
         
         // Refinementのタイプに応じてアイコンを選択
         let icon = '✨';
@@ -265,52 +235,49 @@ ${data.condition}
             title = 'Proceed';
         }
         
-        let content = `### ${icon} ${title}
+        lines.push(`### ${icon} ${title}`);
+        lines.push('');
 
-`;
-
-        // Layer情報
+        // Layer情報（ジャンプリンク付き）
         if (data.layerObject) {
-            content += `**Layer:** \`${data.layerObject}\`
-
-`;
+            const layerEntity = this.findLayerByName(data.layerObject);
+            if (layerEntity) {
+                lines.push(`**Layer:** \`${data.layerObject}\` ${this.makeJumpLink(layerEntity.line)}`);
+            } else {
+                lines.push(`**Layer:** \`${data.layerObject}\``);
+            }
+            lines.push('');
         }
 
         // ターゲット情報
         if (data.targetObject) {
-            content += `**Target:** \`${data.targetObject}\`
-
-`;
+            lines.push(`**Target:** \`${data.targetObject}\``);
+            lines.push('');
         }
 
         if (data.targetClass) {
-            content += `**Class:** \`${data.targetClass}\`
-
-`;
+            lines.push(`**Class:** \`${data.targetClass}\``);
+            lines.push('');
         }
 
         // メソッド情報
         if (data.methodName) {
-            content += `**Method:** \`${data.methodName}()\`
-
-`;
+            lines.push(`**Method:** \`${data.methodName}()\``);
+            lines.push('');
         }
 
         // mappings (for exhibit)
         if (data.mappings && Array.isArray(data.mappings)) {
-            content += `**Mappings:**
-`;
+            lines.push('**Mappings:**');
             data.mappings.forEach(mapping => {
-                content += `  • \`${mapping.key}\` ← \`${mapping.value}\`
-`;
+                lines.push(`  • \`${mapping.key}\` ← \`${mapping.value}\``);
             });
-            content += `
-`;
+            lines.push('');
         }
 
-        content += `**Line:** ${entity.line}`;
+        lines.push(`**Line:** ${entity.line} ${this.makeJumpLink(entity.line)}`);
 
-        return content;
+        return lines.join('\n');
     }
 
     /**
@@ -318,7 +285,7 @@ ${data.condition}
      */
     generateClassHover(entity) {
         const { name } = entity;
-        return `### Class: \`${name}\`\n\n**Line:** ${entity.line}`;
+        return `### Class: \`${name}\`\n\n**Line:** ${entity.line} ${this.makeJumpLink(entity.line)}`;
     }
 
     /**
@@ -326,7 +293,49 @@ ${data.condition}
      */
     generateDefaultHover(entity) {
         const { name, type } = entity;
-        return `### ${type}: \`${name}\`\n\n**Line:** ${entity.line}`;
+        return `### ${type}: \`${name}\`\n\n**Line:** ${entity.line} ${this.makeJumpLink(entity.line)}`;
+    }
+
+    /**
+     * 指定Layerに関連するRefinementを検索
+     * @param {string} layerName - Layer instance名
+     * @returns {Array} 関連するRefinement配列
+     */
+    findRelatedRefinements(layerName) {
+        if (!this.result || !this.result.refinements) {
+            return [];
+        }
+
+        return this.result.refinements.filter(ref => {
+            return ref.layerObject === layerName;
+        });
+    }
+
+    /**
+     * 名前でLayerを検索
+     * @param {string} layerName - Layer名
+     * @returns {Object|null} Layer entity or null
+     */
+    findLayerByName(layerName) {
+        if (!this.result || !this.result.layers) {
+            return null;
+        }
+
+        return this.result.layers.find(layer => layer.name === layerName);
+    }
+
+    /**
+     * ジャンプリンク用のMarkdownを生成
+     * @param {number} line - 行番号
+     * @param {string} filePath - ファイルパス (オプション)
+     * @param {string} label - リンクラベル (デフォルト: "↗")
+     * @returns {string} Markdownリンク
+     */
+    makeJumpLink(line, filePath = null, label = "↗") {
+        const args = filePath ? { line, file: filePath } : line;
+        const argsJson = JSON.stringify(args);
+        const encodedArgs = encodeURIComponent(argsJson);
+        return `[${label}](command:cop-lens.goToLine?${encodedArgs})`;
     }
 }
 

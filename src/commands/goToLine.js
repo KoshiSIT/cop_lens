@@ -1,11 +1,34 @@
 const vscode = require("vscode");
 
 /**
- * Go to a specific line in the active text editor
- * @param {number} lineNumber - The line number to navigate to (1-based)
+ * Go to a specific line in the active text editor or a specified file
+ * @param {number|object} lineNumberOrOptions - Line number (1-based) or options object {line, file}
  */
-function goToLine(lineNumber) {
-    const editor = vscode.window.activeTextEditor;
+async function goToLine(lineNumberOrOptions) {
+    let lineNumber;
+    let filePath = null;
+    
+    // Handle both old API (just line number) and new API (options object)
+    if (typeof lineNumberOrOptions === 'object') {
+        lineNumber = lineNumberOrOptions.line;
+        filePath = lineNumberOrOptions.file;
+    } else {
+        lineNumber = lineNumberOrOptions;
+    }
+    
+    let editor = vscode.window.activeTextEditor;
+    
+    // If file path is specified and different from current file, open it
+    if (filePath && (!editor || editor.document.uri.fsPath !== filePath)) {
+        try {
+            const document = await vscode.workspace.openTextDocument(filePath);
+            editor = await vscode.window.showTextDocument(document);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to open file: ${filePath}`);
+            console.error('Error opening file:', error);
+            return;
+        }
+    }
 
     if (!editor) {
         return;
