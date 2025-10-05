@@ -63,7 +63,9 @@ async function activate(context) {
             
             globalStore.updateFile(filePath, analysisResult);
             
-            console.log(`[Store] Updated ${filePath}: ${analysisResult.layers.length} layers, ${analysisResult.refinements.length} refinements`);
+            const layersCount = analysisResult.getLayers ? analysisResult.getLayers().length : 0;
+            const refinementsCount = analysisResult.getRefinements ? analysisResult.getRefinements().length : 0;
+            console.log(`[Store] Updated ${filePath}: ${layersCount} layers, ${refinementsCount} refinements`);
             
             // Update UI components (they read from globalStore)
             const fileAnalysis = globalStore.getFileAnalysis(filePath);
