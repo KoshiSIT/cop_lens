@@ -6,9 +6,21 @@ const { BabelRefinementDetector } = require("./src/parser/babelRefinementDetecto
 const { BabelObjectDependencyDetector } = require("./src/parser/babelObjectDependencyDetector");
 const { ProjectAnalyzer } = require("./src/analyzer/projectAnalyzer");
 const { COPTreeProvider } = require("./src/ui/treeProvider");
+const { COPTreeProviderAdapter } = require("./src/ui/treeProviderAdapter");
 const DependencyGraphView = require("./src/ui/dependencyGraphView");
 const { setupCommands } = require("./src/commands");
 const { determineProjectRoot } = require("./src/utils/projectUtils");
+const { BabelSymbolDetector } = require("./src/parser/babelSymbolDetector");
+const { SymbolRegistry } = require("./src/analyzer/symbolRegistry");
+const { COPHoverProvider } = require("./src/ui/hoverProvider");
+const { COPHoverProviderAdapter } = require("./src/ui/hoverProviderAdapter");
+const { COPAnalysisResult } = require("./src/analyzer/copAnalysisResult");
+
+// New unified architecture (Phase 1: parallel operation)
+const { COPAnalyzer } = require("./src/analyzer/copAnalyzer");
+const { HoverProvider } = require("./src/features/hoverProvider");
+const { TreeViewProvider } = require("./src/features/treeViewProvider");
+const { DependencyGraphProvider } = require("./src/features/dependencyGraphProvider");
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -21,31 +33,80 @@ function activate(context) {
     
     try {
         console.log("Loading dependencies...");
-        const treeProvider = new COPTreeProvider();
         const dependencyGraphView = new DependencyGraphView(context);
+        
+        // OLD: Keep for backward compatibility (Phase 2 will remove)
+        const analysisResult = new COPAnalysisResult();
+        const oldHoverProvider = new COPHoverProvider(analysisResult);
+        const oldTreeProvider = new COPTreeProvider();
+        
+        // NEW: Use adapters with new architecture
+        const newTreeProvider = new COPTreeProviderAdapter();
+        const newHoverProvider = new COPHoverProviderAdapter();
+        
+        // Register NEW hover provider for JavaScript files
+        const hoverDisposable = vscode.languages.registerHoverProvider(
+            { language: 'javascript', scheme: 'file' },
+            newHoverProvider
+        );
 
-        vscode.window.registerTreeDataProvider("copOverview", treeProvider);
+        // Register NEW tree data provider
+        vscode.window.registerTreeDataProvider("copOverview", newTreeProvider);
 
         function analyzeCurrentFile() {
             const editor = vscode.window.activeTextEditor;
             if (!editor || editor.document.languageId !== "javascript") {
-                treeProvider.updateResults([]);
+                // Clear NEW providers
+                newTreeProvider.setAnalysisResult(null);
+                newHoverProvider.setAnalysisResult(null);
+                
+                // Clear OLD providers (keep for compatibility)
+                analysisResult.entities = [];
+                analysisResult.buildIndices();
+                oldTreeProvider.setResults([]);
                 return;
             }
 
-            console.log("Analyzing current file for layers...");
+            console.log("Analyzing current file...");
             const code = editor.document.getText();
+            const filePath = editor.document.fileName;
+            
+            // NEW: Use unified COPAnalyzer
+            const analyzer = new COPAnalyzer(filePath);
+            const newAnalysisResult = analyzer.analyze(code);
+            
+            console.log(`[NEW] Detected ${newAnalysisResult.layers.length} layers, ${newAnalysisResult.refinements.length} refinements`);
+            
+            // Update NEW UI components
+            newTreeProvider.setAnalysisResult(newAnalysisResult);
+            newHoverProvider.setAnalysisResult(newAnalysisResult);
+            
+            // OLD: Keep existing analysis for backward compatibility (will be removed in Phase 3)
             const layerDetector = new BabelLayerDetector();
-            const results = layerDetector.detect(code);
+            const layerResults = layerDetector.detect(code);
 
             const refinementDetector = new BabelRefinementDetector();
             const refinementResults = refinementDetector.detect(code);
 
-            console.log(`Detected ${results.length} layers.`);
-            const allResults = [...results, ...refinementResults].sort(
-                (a, b) => a.line - b.line,
-            );
-            treeProvider.updateResults(allResults);
+            const symbolDetector = new BabelSymbolDetector();
+            const symbols = symbolDetector.detect(code);
+            
+            console.log(`[OLD] Detected ${layerResults.length} layers, ${refinementResults.length} refinements`);
+            
+            // Build old unified analysis result (keep for comparison)
+            analysisResult.entities = []; // Reset
+            analysisResult.mergeLayerResults(layerResults);
+            analysisResult.mergeRefinementResults(refinementResults);
+            analysisResult.mergeSymbols(symbols);
+            analysisResult.buildIndices();
+            
+            // Update OLD UI components (disabled - using new ones)
+            // oldTreeProvider.setResults(analysisResult.getLegacyResults());
+            // oldHoverProvider.setAnalysisResult(analysisResult);
+            
+            // Log statistics
+            const stats = analysisResult.getStatistics();
+            console.log(`[OLD] Analysis complete:`, stats);
         }
 
         analyzeCurrentFile();
@@ -118,7 +179,12 @@ function activate(context) {
             }
         });
 
-        context.subscriptions.push(changeListener, saveListener, dependencyGraphCommand);
+        context.subscriptions.push(
+            changeListener, 
+            saveListener, 
+            dependencyGraphCommand,
+            hoverDisposable
+        );
         
         setupCommands(context);
         
