@@ -61,11 +61,13 @@ class TreeViewProvider {
         switch (type) {
             case 'layer':
                 return `${name} (line ${line})`;
-            case 'refinement':
-                return this.getRefinementDisplayName(data, line);
             case 'class':
                 return `${name} (line ${line})`;
             default:
+                // Check if it's a refinement type
+                if (type.startsWith('refinement_')) {
+                    return this.getRefinementDisplayName(data, line);
+                }
                 return `${name || 'Unknown'} (line ${line})`;
         }
     }
@@ -102,11 +104,13 @@ class TreeViewProvider {
         switch (type) {
             case 'layer':
                 return data.condition || '';
-            case 'refinement':
-                return this.getRefinementDescription(data);
             case 'class':
                 return 'Class definition';
             default:
+                // Check if it's a refinement type
+                if (type.startsWith('refinement_')) {
+                    return this.getRefinementDescription(data);
+                }
                 return '';
         }
     }
@@ -151,11 +155,13 @@ class TreeViewProvider {
         switch (type) {
             case 'layer':
                 return this.getLayerTooltip(name, data);
-            case 'refinement':
-                return this.getRefinementTooltip(data);
             case 'class':
                 return `Class: ${name}`;
             default:
+                // Check if it's a refinement type
+                if (type.startsWith('refinement_')) {
+                    return this.getRefinementTooltip(data);
+                }
                 return name || 'Unknown';
         }
     }
@@ -227,13 +233,14 @@ class TreeViewProvider {
                     return { icon: 'circle-filled', color: 'charts.gray' };
                 }
             
-            case 'refinement':
-                return this.getRefinementIcon(data);
-            
             case 'class':
                 return { icon: 'symbol-class', color: 'charts.yellow' };
             
             default:
+                // Check if it's a refinement type
+                if (type.startsWith('refinement_')) {
+                    return this.getRefinementIcon(data);
+                }
                 return { icon: 'question', color: 'charts.gray' };
         }
     }
