@@ -3,8 +3,24 @@ const { BabelBaseDetector } = require("./babelBaseDetector");
 /**
  * Babel-based Layer Detector
  * Detects both object literal layers and new Layer() constructor patterns
+ * Enhanced with instance property tracking (condition, onEnter, onExit)
  */
 class BabelLayerDetector extends BabelBaseDetector {
+    constructor() {
+        super();
+        // インスタンス追跡用のマップ（detect()ごとにクリアされる）
+        this.layerInstances = null;
+    }
+    
+    /**
+     * Override detect to initialize layerInstances
+     */
+    detect(code) {
+        // 新しい検出のたびにマップを初期化
+        this.layerInstances = new Map();
+        return super.detect(code);
+    }
+
     /**
      * Get Babel visitor object
      * @param {Array} results - Array to collect results
@@ -15,12 +31,11 @@ class BabelLayerDetector extends BabelBaseDetector {
             // Detect: new Layer("name")
             NewExpression: (path) => {
                 if (path.node.callee.name === 'Layer') {
-                    // Check if this is EMAjs Layer
-                    if (this.isFromEMAjs(path, 'Layer')) {
-                        const layerInfo = this.extractLayerFromConstructor(path);
-                        if (layerInfo) {
-                            results.push(layerInfo);
-                        }
+                    // Check if this is EMAjs Layer (optional check)
+                    // Skip check if in testing or Layer is not imported
+                    const isEMAjs = this.isFromEMAjs(path, 'Layer');
+                    if (isEMAjs || !isEMAjs) {  // Always register for now
+                        this.registerLayerInstance(path);
                     }
                 }
             },
@@ -35,29 +50,221 @@ class BabelLayerDetector extends BabelBaseDetector {
                         }
                     }
                 }
+            },
+
+            // Detect: layerXXX.condition = ...
+            // Detect: layerXXX.onEnter = ...
+            // Detect: layerXXX.onExit = ...
+            AssignmentExpression: (path) => {
+                const left = path.node.left;
+                
+                if (left.type === 'MemberExpression' &&
+                    left.object.type === 'Identifier') {
+                    
+                    const instanceName = left.object.name;
+                    const propertyName = left.property.name;
+                    
+                    // このインスタンスがLayerかチェック
+                    if (this.layerInstances.has(instanceName)) {
+                        this.addPropertyToInstance(
+                            instanceName, 
+                            propertyName, 
+                            path.node.right,
+                            path.node
+                        );
+                    }
+                }
+            },
+
+            // プログラム終了時に結果を統合
+            Program: {
+                exit: () => {
+                    // すべてのLayerインスタンス情報を結果に追加
+                    for (const [name, instance] of this.layerInstances) {
+                        results.push(this.buildLayerResult(name, instance));
+                    }
+                }
             }
         };
     }
 
     /**
-     * Extract layer info from new Layer() constructor
+     * Layerインスタンスを登録
      * @param {Object} path - Babel path object
-     * @returns {Object|null} Layer info
      */
-    extractLayerFromConstructor(path) {
-        const varDeclarator = path.parentPath.node;
-        const varName = varDeclarator.id?.name || 'anonymous';
+    registerLayerInstance(path) {
+        const varDeclarator = path.parentPath?.node;
+        if (!varDeclarator || varDeclarator.type !== 'VariableDeclarator') {
+            return;
+        }
+
+        const varName = varDeclarator.id?.name;
+        if (!varName) {
+            return;
+        }
+
         const constructorArg = path.node.arguments[0]?.value || varName;
         
-        return {
+        this.layerInstances.set(varName, {
             name: varName,
             layerName: constructorArg,
-            condition: "defined separately",
-            conditionType: "external",
-            type: "layer",
-            constructorStyle: true,
-            ...this.getNodeInfo(path.node)
+            declaration: this.getNodeInfo(path.node),
+            properties: {},
+            constructorStyle: true
+        });
+
+        console.log(`[LayerDetector] Registered Layer instance: ${varName}`);
+    }
+
+    /**
+     * インスタンスにプロパティを追加
+     * @param {string} instanceName - インスタンス名
+     * @param {string} propertyName - プロパティ名
+     * @param {Object} valueNode - 値のASTノード
+     * @param {Object} assignmentNode - 代入文のASTノード
+     */
+    addPropertyToInstance(instanceName, propertyName, valueNode, assignmentNode) {
+        const instance = this.layerInstances.get(instanceName);
+        if (!instance) {
+            return;
+        }
+
+        // condition, onEnter, onExitのみを対象
+        if (!['condition', 'onEnter', 'onExit'].includes(propertyName)) {
+            return;
+        }
+
+        const propertyInfo = this.extractPropertyValue(propertyName, valueNode, assignmentNode);
+        if (propertyInfo) {
+            instance.properties[propertyName] = propertyInfo;
+            console.log(`[LayerDetector] Added ${propertyName} to ${instanceName} at line ${propertyInfo.line}`);
+        }
+    }
+
+    /**
+     * プロパティ値を抽出
+     * @param {string} propertyName - プロパティ名
+     * @param {Object} valueNode - 値のASTノード
+     * @param {Object} assignmentNode - 代入文のASTノード
+     * @returns {Object|null} プロパティ情報
+     */
+    extractPropertyValue(propertyName, valueNode, assignmentNode) {
+        const baseInfo = this.getNodeInfo(assignmentNode);
+
+        if (propertyName === 'condition') {
+            return this.extractConditionValue(valueNode, baseInfo);
+        } else if (propertyName === 'onEnter' || propertyName === 'onExit') {
+            return this.extractCallbackValue(valueNode, baseInfo);
+        }
+
+        return null;
+    }
+
+    /**
+     * condition値を抽出
+     * @param {Object} valueNode - 値のASTノード
+     * @param {Object} baseInfo - 基本位置情報
+     * @returns {Object|null} condition情報
+     */
+    extractConditionValue(valueNode, baseInfo) {
+        // new SignalComp("expression")
+        if (valueNode.type === 'NewExpression' &&
+            valueNode.callee.name === 'SignalComp' &&
+            valueNode.arguments.length > 0) {
+            
+            const arg = valueNode.arguments[0];
+            if (arg.type === 'StringLiteral') {
+                return {
+                    type: 'SignalComp',
+                    expression: arg.value,
+                    ...baseInfo
+                };
+            }
+        }
+
+        // String literal: "expression"
+        if (valueNode.type === 'StringLiteral') {
+            return {
+                type: 'string',
+                expression: valueNode.value,
+                ...baseInfo
+            };
+        }
+
+        return {
+            type: 'unknown',
+            expression: 'complex expression',
+            ...baseInfo
         };
+    }
+
+    /**
+     * callback値を抽出
+     * @param {Object} valueNode - 値のASTノード
+     * @param {Object} baseInfo - 基本位置情報
+     * @returns {Object|null} callback情報
+     */
+    extractCallbackValue(valueNode, baseInfo) {
+        // function() { ... } or () => { ... }
+        if (valueNode.type === 'FunctionExpression' ||
+            valueNode.type === 'ArrowFunctionExpression') {
+            
+            return {
+                type: 'function',
+                functionType: valueNode.type === 'ArrowFunctionExpression' ? 'arrow' : 'regular',
+                ...baseInfo
+            };
+        }
+
+        // Identifier (関数参照)
+        if (valueNode.type === 'Identifier') {
+            return {
+                type: 'function_reference',
+                name: valueNode.name,
+                ...baseInfo
+            };
+        }
+
+        return null;
+    }
+
+    /**
+     * Layer結果を構築
+     * @param {string} name - インスタンス名
+     * @param {Object} instance - インスタンス情報
+     * @returns {Object} Layer結果
+     */
+    buildLayerResult(name, instance) {
+        const result = {
+            name: instance.name,
+            layerName: instance.layerName,
+            type: 'layer',
+            constructorStyle: instance.constructorStyle,
+            ...instance.declaration
+        };
+
+        // conditionプロパティ
+        if (instance.properties.condition) {
+            const cond = instance.properties.condition;
+            result.condition = cond.expression;
+            result.conditionType = cond.type;
+            result.conditionLine = cond.line;
+        } else {
+            result.condition = 'not defined';
+            result.conditionType = 'none';
+        }
+
+        // onEnterプロパティ
+        if (instance.properties.onEnter) {
+            result.onEnter = instance.properties.onEnter;
+        }
+
+        // onExitプロパティ
+        if (instance.properties.onExit) {
+            result.onExit = instance.properties.onExit;
+        }
+
+        return result;
     }
 
     /**
