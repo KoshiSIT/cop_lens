@@ -215,18 +215,16 @@ class HoverProvider {
             
             lines.push('---');
             lines.push('');
-            lines.push(`### ✨ Refinements (${refinements.length})`);
-            lines.push('');
             
-            // 各Base（オリジナルメソッド）ごとに表示
+            // 各ターゲットメソッドごとに表示（Base と Refinement を同列に）
             for (const [key, group] of refinementsByTarget) {
                 const { targetClassName, methodName, refinements: refs } = group;
                 
                 // クラス情報を取得
                 const classInfo = this.findClassByName(targetClassName);
                 
-                // --- Base Section ---
-                lines.push(`#### 📦 Base: \`${targetClassName}.${methodName}()\``);
+                // --- Base Section (文脈に依存しない元の実装) ---
+                lines.push(`### 📦 Base: \`${targetClassName}.${methodName}()\``);
                 lines.push('');
                 
                 // クラスへのジャンプリンク
@@ -247,9 +245,15 @@ class HoverProvider {
                 }
                 
                 lines.push('');
+                lines.push('---');
+                lines.push('');
                 
-                // --- Refinements for this Base ---
-                lines.push(`**Refinements (${refs.length}):**`);
+                // --- Refinement Section (文脈依存の動作) ---
+                lines.push(`### ✨ Refinement: \`${targetClassName}.${methodName}()\``);
+                lines.push('');
+                lines.push(`**Context-dependent behaviors (${refs.length}):**`);
+                lines.push('');
+                
                 refs.forEach(ref => {
                     const refLink = this.makeJumpLink(ref.line);
                     lines.push(`• Line ${ref.line} ${refLink}`);
