@@ -200,9 +200,36 @@ class HoverProvider {
             lines.push('');
             
             refinements.forEach(ref => {
-                const target = ref.targetObject || ref.targetClass || 'unknown';
-                const method = ref.methodName || 'unknown';
-                lines.push(`• \`${target}.${method}()\` at line ${ref.line} ${this.makeJumpLink(ref.line)}`);
+                const targetClassName = ref.targetObject || ref.targetClass || 'unknown';
+                const methodName = ref.methodName || 'unknown';
+                
+                // クラス情報を取得
+                const classInfo = this.findClassByName(targetClassName);
+                
+                // クラスへのジャンプリンク
+                let classLink = '';
+                if (classInfo) {
+                    classLink = this.makeJumpLink(classInfo.line, classInfo.file);
+                }
+                
+                // メソッドへのジャンプリンク
+                let methodLink = '';
+                if (classInfo && classInfo.methodsMap && classInfo.methodsMap[methodName]) {
+                    const methodInfo = classInfo.methodsMap[methodName];
+                    methodLink = this.makeJumpLink(methodInfo.line, methodInfo.file);
+                }
+                
+                // Refinement行へのジャンプリンク
+                const refLink = this.makeJumpLink(ref.line);
+                
+                // 表示形式: クラス → メソッド → Refinement行
+                if (classLink && methodLink) {
+                    lines.push(`• \`${targetClassName}\` ${classLink} → \`${methodName}()\` ${methodLink} → Refinement ${refLink}`);
+                } else if (classLink) {
+                    lines.push(`• \`${targetClassName}\` ${classLink} → \`${methodName}()\` → Refinement ${refLink}`);
+                } else {
+                    lines.push(`• \`${targetClassName}.${methodName}()\` at line ${ref.line} ${refLink}`);
+                }
             });
             lines.push('');
         }
