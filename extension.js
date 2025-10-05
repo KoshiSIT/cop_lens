@@ -75,14 +75,92 @@ function activate(context) {
             console.log(`[Store] Total: ${stats.totalFiles} files, ${stats.totalLayers} layers, ${stats.totalRefinements} refinements`);
         }
 
-        // Initialize project root
-        const editor = vscode.window.activeTextEditor;
-        if (editor) {
+        /**
+         * Initialize project-wide analysis
+         */
+        async function initializeProjectAnalysis() {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor || editor.document.languageId !== 'javascript') {
+                return;
+            }
+
+            console.log("[Store] Initializing project-wide analysis...");
             const projectRoot = determineProjectRoot(editor.document);
             globalStore.setProjectRoot(projectRoot);
+
+            try {
+                // Step 1: Analyze dependency graph (project-wide)
+                const projectAnalyzer = new ProjectAnalyzer(projectRoot);
+                const dependencyGraph = await projectAnalyzer.analyzeProject();
+                
+                // Save dependency graph to store
+                globalStore.setDependencyGraph(dependencyGraph);
+                console.log(`[Store] Dependency graph saved: ${dependencyGraph.nodes.length} nodes, ${dependencyGraph.edges.length} edges`);
+
+                // Step 2: Analyze each file for COP constructs
+                const scopeDir = require('path').dirname(editor.document.fileName);
+                const jsFiles = collectJavaScriptFiles(scopeDir);
+                
+                console.log(`[Store] Analyzing ${jsFiles.length} JavaScript files...`);
+                for (const file of jsFiles) {
+                    try {
+                        const code = require('fs').readFileSync(file, 'utf8');
+                        const copAnalyzer = new COPAnalyzer(file);
+                        const result = copAnalyzer.analyze(code);
+                        globalStore.updateFile(file, result);
+                    } catch (err) {
+                        console.error(`[Store] Error analyzing ${file}:`, err.message);
+                    }
+                }
+
+                // Update UI
+                const fileAnalysis = globalStore.getFileAnalysis(editor.document.fileName);
+                if (fileAnalysis) {
+                    treeProvider.setAnalysisResult(fileAnalysis, editor.document.fileName);
+                    hoverProvider.setAnalysisResult(fileAnalysis);
+                }
+
+                // Log statistics
+                const stats = globalStore.getStatistics();
+                console.log(`[Store] Project initialized: ${stats.totalFiles} files, ${stats.totalLayers} layers, ${stats.totalRefinements} refinements`);
+                
+                vscode.window.setStatusBarMessage(
+                    `✅ COP-lens: ${stats.totalFiles} files analyzed`,
+                    3000
+                );
+            } catch (error) {
+                console.error('[Store] Project initialization failed:', error);
+                vscode.window.showErrorMessage(`Failed to initialize project: ${error.message}`);
+            }
         }
-        
-        updateGlobalStore();
+
+        /**
+         * Collect all JavaScript files in a directory
+         */
+        function collectJavaScriptFiles(dir) {
+            const fs = require('fs');
+            const path = require('path');
+            const files = [];
+            
+            try {
+                const entries = fs.readdirSync(dir);
+                for (const entry of entries) {
+                    const fullPath = path.join(dir, entry);
+                    const stat = fs.statSync(fullPath);
+                    
+                    if (stat.isFile() && entry.endsWith('.js')) {
+                        files.push(fullPath);
+                    }
+                }
+            } catch (err) {
+                console.error('[Store] Error collecting files:', err);
+            }
+            
+            return files;
+        }
+
+        // Initialize project on activation
+        initializeProjectAnalysis();
 
         // Update store when the file is changed
         const changeListener = vscode.window.onDidChangeActiveTextEditor(() => {
@@ -107,31 +185,28 @@ function activate(context) {
             }
 
             try {
-                const filePath = editor.document.fileName;
-                const fileName = vscode.workspace.asRelativePath(filePath);
-                const projectRoot = determineProjectRoot(editor.document);
+                const fileName = vscode.workspace.asRelativePath(editor.document.fileName);
 
-                // Analyze project using ProjectAnalyzer
-                console.log('Starting project-wide dependency analysis...');
-                console.log('Entry file:', filePath);
-                console.log('Project root:', projectRoot);
+                // Retrieve dependency graph from store (no re-analysis!)
+                let dependencyGraph = globalStore.getDependencyGraph();
                 
-                const analyzer = new ProjectAnalyzer(projectRoot);
-                const dependencyGraph = await analyzer.analyzeProject();
-                
-                console.log('Analysis results:', dependencyGraph.summary);
-                console.log('Nodes found:', dependencyGraph.nodes.length);
-                console.log('Edges found:', dependencyGraph.edges.length);
-
-                if (dependencyGraph.summary.classes === 0) {
-                    console.log('No classes detected in project');
-                    vscode.window.showInformationMessage('No classes found in the project.');
-                    return;
+                if (!dependencyGraph || dependencyGraph.nodes.length === 0) {
+                    console.log('[Graph] No dependency graph in store. Initializing project...');
+                    vscode.window.showInformationMessage('Analyzing project...');
+                    
+                    // Initialize if not done yet
+                    await initializeProjectAnalysis();
+                    dependencyGraph = globalStore.getDependencyGraph();
+                    
+                    if (!dependencyGraph || dependencyGraph.nodes.length === 0) {
+                        vscode.window.showInformationMessage('No classes found in the project.');
+                        return;
+                    }
                 }
                 
-                console.log('Classes found:', dependencyGraph.summary.classes);
-                console.log('Instances found:', dependencyGraph.summary.instances);
-                console.log('Dependencies found:', dependencyGraph.summary.dependencies);
+                console.log('[Graph] Retrieved from store:', dependencyGraph.summary);
+                console.log('[Graph] Nodes:', dependencyGraph.nodes.length);
+                console.log('[Graph] Edges:', dependencyGraph.edges.length);
 
                 // Show in WebView
                 dependencyGraphView.show(
@@ -147,8 +222,8 @@ function activate(context) {
                 );
 
             } catch (error) {
-                console.error('Error generating dependency graph:', error);
-                vscode.window.showErrorMessage(`Failed to generate dependency graph: ${error.message}`);
+                console.error('[Graph] Error showing dependency graph:', error);
+                vscode.window.showErrorMessage(`Failed to show dependency graph: ${error.message}`);
             }
         });
 
