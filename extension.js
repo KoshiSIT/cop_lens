@@ -3,8 +3,8 @@ const vscode = require("vscode");
 
 // Unified architecture
 const { COPAnalyzer } = require("./src/analyzer/copAnalyzer");
-const { ProjectAnalyzer } = require("./src/analyzer/projectAnalyzer");
 const { GlobalCOPDataStore } = require("./src/analyzer/globalCOPDataStore");
+const { UnifiedProjectAnalyzer } = require("./src/analyzer/unifiedProjectAnalyzer");
 
 // UI Adapters
 const { COPTreeProviderAdapter } = require("./src/ui/treeProviderAdapter");
@@ -89,29 +89,18 @@ function activate(context) {
             globalStore.setProjectRoot(projectRoot);
 
             try {
-                // Step 1: Analyze dependency graph (project-wide)
-                const projectAnalyzer = new ProjectAnalyzer(projectRoot);
-                const dependencyGraph = await projectAnalyzer.analyzeProject();
+                // Use unified analyzer for complete project analysis
+                const analyzer = new UnifiedProjectAnalyzer(projectRoot);
+                const { fileResults, dependencyGraph } = await analyzer.analyzeProject();
                 
-                // Save dependency graph to store
-                globalStore.setDependencyGraph(dependencyGraph);
-                console.log(`[Store] Dependency graph saved: ${dependencyGraph.nodes.length} nodes, ${dependencyGraph.edges.length} edges`);
-
-                // Step 2: Analyze each file for COP constructs
-                const scopeDir = require('path').dirname(editor.document.fileName);
-                const jsFiles = collectJavaScriptFiles(scopeDir);
-                
-                console.log(`[Store] Analyzing ${jsFiles.length} JavaScript files...`);
-                for (const file of jsFiles) {
-                    try {
-                        const code = require('fs').readFileSync(file, 'utf8');
-                        const copAnalyzer = new COPAnalyzer(file);
-                        const result = copAnalyzer.analyze(code);
-                        globalStore.updateFile(file, result);
-                    } catch (err) {
-                        console.error(`[Store] Error analyzing ${file}:`, err.message);
-                    }
+                // Save all results to store
+                for (const [filePath, result] of fileResults) {
+                    globalStore.updateFile(filePath, result);
                 }
+                
+                globalStore.setDependencyGraph(dependencyGraph);
+                
+                console.log(`[Store] Dependency graph saved: ${dependencyGraph.nodes.length} nodes, ${dependencyGraph.edges.length} edges`);
 
                 // Update UI
                 const fileAnalysis = globalStore.getFileAnalysis(editor.document.fileName);
@@ -134,30 +123,7 @@ function activate(context) {
             }
         }
 
-        /**
-         * Collect all JavaScript files in a directory
-         */
-        function collectJavaScriptFiles(dir) {
-            const fs = require('fs');
-            const path = require('path');
-            const files = [];
-            
-            try {
-                const entries = fs.readdirSync(dir);
-                for (const entry of entries) {
-                    const fullPath = path.join(dir, entry);
-                    const stat = fs.statSync(fullPath);
-                    
-                    if (stat.isFile() && entry.endsWith('.js')) {
-                        files.push(fullPath);
-                    }
-                }
-            } catch (err) {
-                console.error('[Store] Error collecting files:', err);
-            }
-            
-            return files;
-        }
+
 
         // Initialize project on activation
         initializeProjectAnalysis();
