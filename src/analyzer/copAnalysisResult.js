@@ -18,6 +18,16 @@ class COPAnalysisResult {
         this.layerResults = [];
         this.refinementResults = [];     // Only actual refinements (addPartialMethod, exhibit)
         this.copOperations = [];         // COP operations (proceed, deploy)
+        
+        // Dependency graph
+        this.dependencies = {
+            nodes: [],
+            edges: [],
+            summary: {
+                totalNodes: 0,
+                totalEdges: 0
+            }
+        };
     }
 
     /**
@@ -343,7 +353,7 @@ class COPAnalysisResult {
      * @returns {Array} Array of refinement entities
      */
     getRefinements() {
-        return this.entities.filter(e => e.type.startsWith('refinement_'));
+        return this.refinementResults;
     }
 
     /**

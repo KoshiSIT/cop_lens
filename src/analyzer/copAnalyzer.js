@@ -1,6 +1,7 @@
 const { BabelLayerDetector } = require('../parser/babelLayerDetector');
 const { BabelRefinementDetector } = require('../parser/babelRefinementDetector');
 const { BabelObjectDependencyDetector } = require('../parser/babelObjectDependencyDetector');
+const { COPAnalysisResult } = require('./copAnalysisResult');
 
 /**
  * COPAnalyzer - 共通の解析フロー
@@ -44,17 +45,16 @@ class COPAnalyzer {
             const refinements = this.refinementDetector.detect(code);
             const dependencies = this.dependencyDetector.detect(code);
             
-            // 2. シンボルインデックスを構築
-            const symbolIndex = this.buildSymbolIndex(layers, refinements, dependencies);
+            // 2. COPAnalysisResultに統合
+            const result = new COPAnalysisResult();
+            result.mergeLayerResults(layers);
+            result.mergeRefinementResults(refinements);  // ← ここで分類される
+            // dependencies は Graph構造なので、そのまま保存
+            result.dependencies = dependencies;
+            result.buildIndices();
             
             // 3. 統合結果を返す
-            return {
-                filePath: this.filePath,
-                layers,
-                refinements,
-                dependencies,
-                symbolIndex
-            };
+            return result;
             
         } catch (error) {
             // 構文エラーなどでも例外を投げない
@@ -132,20 +132,7 @@ class COPAnalyzer {
      * @returns {Object} 空の解析結果
      */
     createEmptyResult() {
-        return {
-            filePath: this.filePath,
-            layers: [],
-            refinements: [],
-            dependencies: {
-                nodes: [],
-                edges: [],
-                summary: {
-                    totalNodes: 0,
-                    totalEdges: 0
-                }
-            },
-            symbolIndex: []
-        };
+        return new COPAnalysisResult();
     }
 }
 
