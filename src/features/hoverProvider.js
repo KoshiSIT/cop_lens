@@ -375,7 +375,9 @@ class HoverProvider {
         }
 
         return this.result.refinements.filter(ref => {
-            return ref.layerObject === layerName;
+            // Layer.proceed() などターゲットが無いものは除外
+            const hasTarget = ref.targetObject || ref.targetClass;
+            return ref.layerObject === layerName && hasTarget;
         });
     }
 
