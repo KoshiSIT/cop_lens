@@ -399,10 +399,9 @@ class HoverProvider {
             return [];
         }
 
+        // refinements配列はすでに実際のRefinementのみが含まれている
         return this.result.refinements.filter(ref => {
-            // ターゲットを持つRefinementのみ（addPartialMethodなど）
-            const hasTarget = ref.targetObject || ref.targetClass;
-            return ref.layerObject === layerName && hasTarget;
+            return ref.layerObject === layerName;
         });
     }
 
@@ -412,14 +411,12 @@ class HoverProvider {
      * @returns {Array} 関連するCOP操作配列
      */
     findRelatedCOPOperations(layerName) {
-        if (!this.result || !this.result.refinements) {
+        if (!this.result || !this.result.copOperations) {
             return [];
         }
 
-        return this.result.refinements.filter(ref => {
-            // Layer.proceed, EMA.deploy など、ターゲットを持たないCOP操作
-            const hasTarget = ref.targetObject || ref.targetClass;
-            return ref.layerObject === layerName && !hasTarget;
+        return this.result.copOperations.filter(op => {
+            return op.layerObject === layerName;
         });
     }
 

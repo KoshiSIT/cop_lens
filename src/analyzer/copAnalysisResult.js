@@ -16,7 +16,8 @@ class COPAnalysisResult {
         
         // Legacy format arrays (for backward compatibility)
         this.layerResults = [];
-        this.refinementResults = [];
+        this.refinementResults = [];     // Only actual refinements (addPartialMethod, exhibit)
+        this.copOperations = [];         // COP operations (proceed, deploy)
     }
 
     /**
@@ -67,12 +68,39 @@ class COPAnalysisResult {
      * @param {Array} refinementResults - Results from BabelRefinementDetector
      */
     mergeRefinementResults(refinementResults) {
-        this.refinementResults = refinementResults; // Keep for backward compat
+        // Classify into Refinements and COP Operations
+        const actualRefinements = [];
+        const copOperations = [];
         
-        for (const refinement of refinementResults) {
+        for (const item of refinementResults) {
+            // COP Operations: proceed, deploy (no targetObject/targetClass)
+            if (item.type === 'refinement_proceed' || item.type === 'refinement_deploy') {
+                copOperations.push(item);
+            }
+            // Actual Refinements: addPartialMethod, exhibit (have targetObject/targetClass)
+            else if (item.type === 'refinement_addPartialMethod' || item.type === 'refinement_exhibit') {
+                actualRefinements.push(item);
+            }
+            // Fallback: check if has target
+            else {
+                const hasTarget = item.targetObject || item.targetClass;
+                if (hasTarget) {
+                    actualRefinements.push(item);
+                } else {
+                    copOperations.push(item);
+                }
+            }
+        }
+        
+        // Store separately
+        this.refinementResults = actualRefinements;  // Only actual refinements
+        this.copOperations = copOperations;          // COP operations
+        
+        // Process actual refinements as entities
+        for (const refinement of actualRefinements) {
             const entity = {
                 id: `${refinement.type}_${refinement.line}`,
-                type: refinement.type, // refinement_exhibit, refinement_addPartialMethod, etc.
+                type: refinement.type,
                 name: this._getRefinementName(refinement),
                 line: refinement.line,
                 
@@ -81,8 +109,7 @@ class COPAnalysisResult {
                     end: refinement.endPos
                 },
                 
-                details: refinement, // Store all refinement details
-                
+                details: refinement,
                 symbols: this._extractRefinementSymbols(refinement),
                 
                 _original: refinement
@@ -93,6 +120,33 @@ class COPAnalysisResult {
             // Link refinement to layer
             if (refinement.layerObject) {
                 this._linkRefinementToLayer(refinement.layerObject, entity);
+            }
+        }
+        
+        // Process COP operations as entities
+        for (const operation of copOperations) {
+            const entity = {
+                id: `${operation.type}_${operation.line}`,
+                type: operation.type,
+                name: this._getCOPOperationName(operation),
+                line: operation.line,
+                
+                position: {
+                    start: operation.startPos,
+                    end: operation.endPos
+                },
+                
+                details: operation,
+                symbols: [],
+                
+                _original: operation
+            };
+            
+            this.entities.push(entity);
+            
+            // Link operation to layer
+            if (operation.layerObject) {
+                this._linkRefinementToLayer(operation.layerObject, entity);
             }
         }
     }
@@ -293,6 +347,14 @@ class COPAnalysisResult {
     }
 
     /**
+     * Get all COP operations
+     * @returns {Array} COP operations array
+     */
+    getCOPOperations() {
+        return this.copOperations;
+    }
+
+    /**
      * Get layer info (similar to SymbolRegistry.getLayerInfo)
      * @param {string} layerName - Layer name
      * @returns {Object|null} Layer info or null
@@ -319,6 +381,7 @@ class COPAnalysisResult {
             total: this.entities.length,
             layers: this.getLayers().length,
             refinements: this.getRefinements().length,
+            copOperations: this.getCOPOperations().length,
             byType: Array.from(this.typeIndex.entries()).map(([type, entities]) => ({
                 type,
                 count: entities.length
@@ -344,6 +407,22 @@ class COPAnalysisResult {
                 return `Layer.proceed()`;
             default:
                 return refinement.type;
+        }
+    }
+
+    /**
+     * Get display name for COP operation
+     * @param {Object} operation - COP operation object
+     * @returns {string} Display name
+     */
+    _getCOPOperationName(operation) {
+        switch (operation.type) {
+            case 'refinement_proceed':
+                return 'Layer.proceed()';
+            case 'refinement_deploy':
+                return `EMA.deploy(${operation.layerObject || ''})`;
+            default:
+                return operation.type;
         }
     }
 
