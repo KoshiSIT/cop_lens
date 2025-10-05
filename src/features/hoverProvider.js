@@ -191,6 +191,31 @@ class HoverProvider {
             }
         }
 
+        // --- COP Operations Section ---
+        const copOperations = this.findRelatedCOPOperations(name);
+        if (copOperations.length > 0) {
+            lines.push('---');
+            lines.push('');
+            lines.push(`### ⚙️ COP Operations (${copOperations.length})`);
+            lines.push('');
+            
+            copOperations.forEach(op => {
+                const opLink = this.makeJumpLink(op.line);
+                let opName = 'Unknown operation';
+                
+                if (op.type === 'refinement_proceed') {
+                    opName = '`Layer.proceed()`';
+                } else if (op.type === 'refinement_deploy') {
+                    opName = '`EMA.deploy()`';
+                } else if (op.type === 'refinement_exhibit') {
+                    opName = '`exhibit()`';
+                }
+                
+                lines.push(`• ${opName} at line ${op.line} ${opLink}`);
+            });
+            lines.push('');
+        }
+
         // --- Refinements Section ---
         const refinements = this.findRelatedRefinements(name);
         if (refinements.length > 0) {
@@ -375,9 +400,26 @@ class HoverProvider {
         }
 
         return this.result.refinements.filter(ref => {
-            // Layer.proceed() などターゲットが無いものは除外
+            // ターゲットを持つRefinementのみ（addPartialMethodなど）
             const hasTarget = ref.targetObject || ref.targetClass;
             return ref.layerObject === layerName && hasTarget;
+        });
+    }
+
+    /**
+     * 指定Layerに関連するCOP操作を検索
+     * @param {string} layerName - Layer instance名
+     * @returns {Array} 関連するCOP操作配列
+     */
+    findRelatedCOPOperations(layerName) {
+        if (!this.result || !this.result.refinements) {
+            return [];
+        }
+
+        return this.result.refinements.filter(ref => {
+            // Layer.proceed, EMA.deploy など、ターゲットを持たないCOP操作
+            const hasTarget = ref.targetObject || ref.targetClass;
+            return ref.layerObject === layerName && !hasTarget;
         });
     }
 
