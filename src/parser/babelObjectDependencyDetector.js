@@ -276,6 +276,16 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
         
         // Add class nodes
         for (const [className, classInfo] of this.classes) {
+            // メソッド情報をマップ化
+            const methodsMap = {};
+            classInfo.methods.forEach(method => {
+                methodsMap[method.name] = {
+                    line: method.line,
+                    file: method.file,
+                    params: method.params || []
+                };
+            });
+            
             nodes.push({
                 data: {
                     id: className,
@@ -285,7 +295,8 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
                     line: classInfo.line,
                     description: classInfo.description,
                     properties: classInfo.properties.length,
-                    methods: classInfo.methods.length
+                    methods: classInfo.methods.length,
+                    methodsMap: methodsMap  // メソッド詳細情報を追加
                 }
             });
         }

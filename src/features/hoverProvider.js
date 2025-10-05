@@ -249,21 +249,33 @@ class HoverProvider {
             lines.push('');
         }
 
-        // ターゲット情報
-        if (data.targetObject) {
-            lines.push(`**Target:** \`${data.targetObject}\``);
-            lines.push('');
-        }
-
-        if (data.targetClass) {
-            lines.push(`**Class:** \`${data.targetClass}\``);
-            lines.push('');
-        }
-
-        // メソッド情報
-        if (data.methodName) {
-            lines.push(`**Method:** \`${data.methodName}()\``);
-            lines.push('');
+        // ターゲット情報（クラス定義へのジャンプリンク付き）
+        const targetClassName = data.targetObject || data.targetClass;
+        if (targetClassName) {
+            const classInfo = this.findClassByName(targetClassName);
+            if (classInfo) {
+                const jumpLink = this.makeJumpLink(classInfo.line, classInfo.file);
+                lines.push(`**Target Class:** \`${targetClassName}\` ${jumpLink}`);
+                lines.push('');
+                
+                // メソッド情報（メソッド定義へのジャンプリンク付き）
+                if (data.methodName && classInfo.methodsMap && classInfo.methodsMap[data.methodName]) {
+                    const methodInfo = classInfo.methodsMap[data.methodName];
+                    const methodJumpLink = this.makeJumpLink(methodInfo.line, methodInfo.file);
+                    lines.push(`**Method:** \`${data.methodName}()\` ${methodJumpLink}`);
+                    lines.push('');
+                } else if (data.methodName) {
+                    lines.push(`**Method:** \`${data.methodName}()\` (definition not found)`);
+                    lines.push('');
+                }
+            } else {
+                lines.push(`**Target:** \`${targetClassName}\` (class not found)`);
+                lines.push('');
+                if (data.methodName) {
+                    lines.push(`**Method:** \`${data.methodName}()\``);
+                    lines.push('');
+                }
+            }
         }
 
         // mappings (for exhibit)
@@ -322,6 +334,38 @@ class HoverProvider {
         }
 
         return this.result.layers.find(layer => layer.name === layerName);
+    }
+
+    /**
+     * 名前でクラスを検索（GlobalStoreまたはローカル結果から）
+     * @param {string} className - クラス名
+     * @returns {Object|null} クラス情報 or null
+     */
+    findClassByName(className) {
+        // GlobalStoreから検索
+        if (this.globalStore && this.globalStore.dependencyGraph) {
+            const graph = this.globalStore.dependencyGraph;
+            if (graph.nodes) {
+                const classNode = graph.nodes.find(n => 
+                    n.data.type === 'class' && n.data.id === className
+                );
+                if (classNode) {
+                    return classNode.data;
+                }
+            }
+        }
+        
+        // ローカル結果から検索
+        if (this.result && this.result.dependencies && this.result.dependencies.nodes) {
+            const classNode = this.result.dependencies.nodes.find(n =>
+                n.data.type === 'class' && n.data.id === className
+            );
+            if (classNode) {
+                return classNode.data;
+            }
+        }
+        
+        return null;
     }
 
     /**
