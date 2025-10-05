@@ -15,10 +15,13 @@ class GraphRenderer {
      * @returns {Object} Complete Cytoscape.js configuration
      */
     render(dependencyGraph) {
+        // Support both 'hierarchy' and 'hierarchyLevels' naming
+        const hierarchyLevels = dependencyGraph.hierarchy || dependencyGraph.hierarchyLevels;
+        
         // Apply hierarchy levels to nodes
         const nodesWithHierarchy = this.applyHierarchyToNodes(
             dependencyGraph.nodes,
-            dependencyGraph.hierarchyLevels
+            hierarchyLevels
         );
 
         const cytoscapeConfig = {
@@ -27,7 +30,7 @@ class GraphRenderer {
                 edges: this.processEdges(dependencyGraph.edges)
             },
             style: this.styleConfig,
-            layout: this.getHierarchyLayout(dependencyGraph.hierarchyLevels),
+            layout: this.getHierarchyLayout(hierarchyLevels),
             metadata: {
                 ...dependencyGraph.summary,
                 generated: new Date().toISOString(),

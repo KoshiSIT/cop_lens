@@ -174,9 +174,16 @@ function activate(context) {
                 console.log('[Graph] Nodes:', dependencyGraph.nodes.length);
                 console.log('[Graph] Edges:', dependencyGraph.edges.length);
 
+                // Build graph with hierarchy using DependencyGraphProvider
+                const { DependencyGraphProvider } = require('./src/features/dependencyGraphProvider');
+                const graphProvider = new DependencyGraphProvider(null, globalStore);
+                const graphWithHierarchy = graphProvider.buildGraph();
+
+                console.log('[Graph] Hierarchy calculated:', graphWithHierarchy.hierarchy.size, 'nodes');
+
                 // Show in WebView
                 dependencyGraphView.show(
-                    dependencyGraph,
+                    graphWithHierarchy,
                     `Dependencies - ${fileName}`,
                     fileName
                 );
