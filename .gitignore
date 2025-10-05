@@ -3,6 +3,9 @@ node_modules
 *.vsix
 .env
 
+# Test scripts (manual testing only, not committed)
+test/manual/
+
 # Dependency Analysis Output (keep analysis tools but ignore generated files)
 analysis/**/dependency-*.svg
 analysis/**/dependency-*.html

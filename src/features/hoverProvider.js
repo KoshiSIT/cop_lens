@@ -194,47 +194,73 @@ class HoverProvider {
         // --- Refinements Section ---
         const refinements = this.findRelatedRefinements(name);
         if (refinements.length > 0) {
+            // ターゲットごとにグループ化（Base別に分類）
+            const refinementsByTarget = new Map();
+            
+            refinements.forEach(ref => {
+                const targetClassName = ref.targetObject || ref.targetClass || 'unknown';
+                const methodName = ref.methodName || 'unknown';
+                const key = `${targetClassName}.${methodName}`;
+                
+                if (!refinementsByTarget.has(key)) {
+                    refinementsByTarget.set(key, {
+                        targetClassName,
+                        methodName,
+                        refinements: []
+                    });
+                }
+                
+                refinementsByTarget.get(key).refinements.push(ref);
+            });
+            
             lines.push('---');
             lines.push('');
             lines.push(`### ✨ Refinements (${refinements.length})`);
             lines.push('');
             
-            refinements.forEach(ref => {
-                const targetClassName = ref.targetObject || ref.targetClass || 'unknown';
-                const methodName = ref.methodName || 'unknown';
+            // 各Base（オリジナルメソッド）ごとに表示
+            for (const [key, group] of refinementsByTarget) {
+                const { targetClassName, methodName, refinements: refs } = group;
                 
                 // クラス情報を取得
                 const classInfo = this.findClassByName(targetClassName);
                 
+                // --- Base Section ---
+                lines.push(`#### 📦 Base: \`${targetClassName}.${methodName}()\``);
+                lines.push('');
+                
                 // クラスへのジャンプリンク
-                let classLink = '';
                 if (classInfo) {
-                    classLink = this.makeJumpLink(classInfo.line, classInfo.file);
-                }
-                
-                // メソッドへのジャンプリンク
-                let methodLink = '';
-                if (classInfo && classInfo.methodsMap && classInfo.methodsMap[methodName]) {
-                    const methodInfo = classInfo.methodsMap[methodName];
-                    methodLink = this.makeJumpLink(methodInfo.line, methodInfo.file);
-                }
-                
-                // Refinement行へのジャンプリンク
-                const refLink = this.makeJumpLink(ref.line);
-                
-                // 表示形式: クラス → メソッド → Refinement行
-                if (classLink && methodLink) {
-                    lines.push(`• \`${targetClassName}\` ${classLink} → \`${methodName}()\` ${methodLink} → Refinement ${refLink}`);
-                } else if (classLink) {
-                    lines.push(`• \`${targetClassName}\` ${classLink} → \`${methodName}()\` → Refinement ${refLink}`);
+                    const classLink = this.makeJumpLink(classInfo.line, classInfo.file);
+                    lines.push(`**Class:** \`${targetClassName}\` ${classLink}`);
+                    
+                    // メソッドへのジャンプリンク
+                    if (classInfo.methodsMap && classInfo.methodsMap[methodName]) {
+                        const methodInfo = classInfo.methodsMap[methodName];
+                        const methodLink = this.makeJumpLink(methodInfo.line, methodInfo.file);
+                        lines.push(`**Method:** \`${methodName}()\` ${methodLink}`);
+                    } else {
+                        lines.push(`**Method:** \`${methodName}()\` (definition not found)`);
+                    }
                 } else {
-                    lines.push(`• \`${targetClassName}.${methodName}()\` at line ${ref.line} ${refLink}`);
+                    lines.push(`**Target:** \`${targetClassName}.${methodName}()\` (class not found)`);
                 }
-            });
-            lines.push('');
+                
+                lines.push('');
+                
+                // --- Refinements for this Base ---
+                lines.push(`**Refinements (${refs.length}):**`);
+                refs.forEach(ref => {
+                    const refLink = this.makeJumpLink(ref.line);
+                    lines.push(`• Line ${ref.line} ${refLink}`);
+                });
+                
+                lines.push('');
+            }
         }
 
-        return lines.join('\n');
+        return lines.join('
+');
     }
 
     /**
