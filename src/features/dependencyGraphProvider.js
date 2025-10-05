@@ -124,13 +124,21 @@ class DependencyGraphProvider {
         // 既存のsummaryがあればそれを使い、不足分を追加
         const existingSummary = dependencies.summary || {};
         
+        // メソッド総数を計算（各クラスのmethodsMapから）
+        let totalMethods = 0;
+        nodes.forEach(node => {
+            if (node.data.type === 'class' && node.data.methodsMap) {
+                totalMethods += Object.keys(node.data.methodsMap).length;
+            }
+        });
+        
         return {
             totalNodes: existingSummary.totalNodes || nodes.length,
             totalEdges: existingSummary.totalEdges || edges.length,
             classes: existingSummary.classes || nodes.filter(n => n.data.type === 'class').length,
             instances: existingSummary.instances || nodes.filter(n => n.data.type === 'instance').length,
             dependencies: existingSummary.dependencies || edges.length,
-            methods: existingSummary.methods || 0
+            methods: totalMethods
         };
     }
 

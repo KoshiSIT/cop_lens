@@ -97,12 +97,40 @@ class GlobalCOPDataStore {
         }
 
         const targetLine = position.line + 1; // VSCodeは0始まり、ASTは1始まり
+        return this.binarySearchSymbol(result.symbolIndex, targetLine);
+    }
 
-        for (const symbol of result.symbolIndex) {
+    /**
+     * 二分探索でシンボルを検索（高速化）
+     * @param {Array} symbols - ソート済みシンボル配列
+     * @param {number} targetLine - 検索対象の行番号
+     * @returns {Object|null} 見つかったシンボル or null
+     */
+    binarySearchSymbol(symbols, targetLine) {
+        if (!symbols || symbols.length === 0) {
+            return null;
+        }
+
+        // まず完全一致を探す（二分探索）
+        let left = 0;
+        let right = symbols.length - 1;
+        
+        while (left <= right) {
+            const mid = Math.floor((left + right) / 2);
+            const symbol = symbols[mid];
+            
             if (symbol.line === targetLine) {
                 return symbol;
+            } else if (symbol.line < targetLine) {
+                left = mid + 1;
+            } else {
+                right = mid - 1;
             }
-            
+        }
+        
+        // 完全一致がない場合、範囲チェック
+        // targetLineを含む範囲を持つシンボルを探す
+        for (const symbol of symbols) {
             if (symbol.range) {
                 const { start, end } = symbol.range;
                 if (targetLine >= start.line && targetLine <= end.line) {
@@ -110,7 +138,7 @@ class GlobalCOPDataStore {
                 }
             }
         }
-
+        
         return null;
     }
 

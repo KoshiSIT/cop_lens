@@ -490,7 +490,8 @@ class DependencyGraphView {
             
             if (data.type === 'class') {
                 info += '<br>Properties: ' + (data.properties || 0);
-                info += '<br>Methods: ' + (data.methods || 0);
+                const methodCount = data.methodsMap ? Object.keys(data.methodsMap).length : 0;
+                info += '<br>Methods: ' + methodCount;
             } else if (data.type === 'instance') {
                 info += '<br>Class: ' + data.className;
             }

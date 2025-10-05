@@ -295,8 +295,7 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
                     line: classInfo.line,
                     description: classInfo.description,
                     properties: classInfo.properties.length,
-                    methods: classInfo.methods.length,
-                    methodsMap: methodsMap  // メソッド詳細情報を追加
+                    methodsMap: methodsMap  // メソッド詳細情報（個数はObject.keys(methodsMap).lengthで取得可能）
                 }
             });
         }

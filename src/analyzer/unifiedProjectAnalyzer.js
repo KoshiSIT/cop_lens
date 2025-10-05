@@ -35,6 +35,8 @@ class UnifiedProjectAnalyzer {
 
         // Step 2: 各ファイルのCOP構文解析
         const fileResults = new Map();
+        const errors = [];
+        let successCount = 0;
         
         for (const file of jsFiles) {
             try {
@@ -42,10 +44,18 @@ class UnifiedProjectAnalyzer {
                 const copAnalyzer = new COPAnalyzer(file);
                 const result = copAnalyzer.analyze(code);
                 fileResults.set(file, result);
+                successCount++;
             } catch (error) {
                 console.error(`[UnifiedAnalyzer] Error analyzing ${file}:`, error.message);
+                errors.push({ file, error: error.message });
                 // エラーでもスキップして続行
             }
+        }
+        
+        // エラーサマリーをログ出力
+        if (errors.length > 0) {
+            console.warn(`[UnifiedAnalyzer] ${errors.length} files failed to analyze`);
+            console.warn(`[UnifiedAnalyzer] Successfully analyzed: ${successCount}/${jsFiles.length}`);
         }
 
         // Step 3: 依存グラフの構築
@@ -74,9 +84,24 @@ class UnifiedProjectAnalyzer {
                 // ノードを追加（重複チェック）
                 if (result.dependencies.nodes) {
                     for (const node of result.dependencies.nodes) {
-                        const exists = allNodes.some(n => n.data.id === node.data.id);
+                        // ファイルパスとIDの組み合わせで一意性を判定
+                        const uniqueId = `${filePath}::${node.data.id}`;
+                        const exists = allNodes.some(n => {
+                            const existingUniqueId = `${n.data.filePath}::${n.data.id}`;
+                            return existingUniqueId === uniqueId;
+                        });
+                        
                         if (!exists) {
-                            allNodes.push(node);
+                            // ノードにファイル情報を追加
+                            const enhancedNode = {
+                                ...node,
+                                data: {
+                                    ...node.data,
+                                    filePath,
+                                    fileUri: `file://${filePath}`
+                                }
+                            };
+                            allNodes.push(enhancedNode);
                         }
                     }
                 }

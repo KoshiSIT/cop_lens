@@ -58,7 +58,11 @@ class COPAnalyzer {
             
         } catch (error) {
             // 構文エラーなどでも例外を投げない
-            console.error(`Error analyzing ${this.filePath}:`, error);
+            console.error(`[COPAnalyzer] Parse error in ${this.filePath}:`);
+            console.error(`  ${error.message}`);
+            if (error.loc) {
+                console.error(`  at line ${error.loc.line}, column ${error.loc.column}`);
+            }
             return this.createEmptyResult();
         }
     }

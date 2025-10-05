@@ -21,7 +21,7 @@ const { determineProjectRoot } = require("./src/utils/projectUtils");
 /**
  * @param {vscode.ExtensionContext} context
  */
-function activate(context) {
+async function activate(context) {
     console.log("COP-lens activated");
     
     try {
@@ -119,14 +119,23 @@ function activate(context) {
                 );
             } catch (error) {
                 console.error('[Store] Project initialization failed:', error);
-                vscode.window.showErrorMessage(`Failed to initialize project: ${error.message}`);
+                vscode.window.showWarningMessage(
+                    `COP-lens: Project analysis incomplete. Some features may be limited.`
+                );
+                
+                // フォールバック: 少なくとも現在のファイルは解析
+                try {
+                    updateGlobalStore();
+                } catch (fallbackError) {
+                    console.error('[Store] Fallback analysis also failed:', fallbackError);
+                }
             }
         }
 
 
 
         // Initialize project on activation
-        initializeProjectAnalysis();
+        await initializeProjectAnalysis();
 
         // Update store when the file is changed
         const changeListener = vscode.window.onDidChangeActiveTextEditor(() => {
