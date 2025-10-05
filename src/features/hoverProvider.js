@@ -395,12 +395,8 @@ class HoverProvider {
      * @returns {Array} 関連するRefinement配列
      */
     findRelatedRefinements(layerName) {
-        if (!this.result || !this.result.refinements) {
-            return [];
-        }
-
-        // refinements配列はすでに実際のRefinementのみが含まれている
-        return this.result.refinements.filter(ref => {
+        const refinements = this.result ? this.result.getRefinements() : [];
+        return refinements.filter(ref => {
             return ref.layerObject === layerName;
         });
     }
@@ -411,11 +407,8 @@ class HoverProvider {
      * @returns {Array} 関連するCOP操作配列
      */
     findRelatedCOPOperations(layerName) {
-        if (!this.result || !this.result.copOperations) {
-            return [];
-        }
-
-        return this.result.copOperations.filter(op => {
+        const copOperations = this.result ? this.result.getCOPOperations() : [];
+        return copOperations.filter(op => {
             return op.layerObject === layerName;
         });
     }
@@ -426,11 +419,8 @@ class HoverProvider {
      * @returns {Object|null} Layer entity or null
      */
     findLayerByName(layerName) {
-        if (!this.result || !this.result.layers) {
-            return null;
-        }
-
-        return this.result.layers.find(layer => layer.name === layerName);
+        const layers = this.result ? this.result.getLayers() : [];
+        return layers.find(layer => layer.name === layerName);
     }
 
     /**

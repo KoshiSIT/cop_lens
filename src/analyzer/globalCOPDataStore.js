@@ -179,15 +179,14 @@ class GlobalCOPDataStore {
     getAllLayers() {
         const layers = [];
         for (const [filePath, result] of this.fileAnalysisResults) {
-            if (result.layers) {
-                result.layers.forEach(layer => {
-                    layers.push({
-                        ...layer,
-                        filePath,
-                        fileUri: `file://${filePath}`
-                    });
+            const layersInFile = result.getLayers ? result.getLayers() : [];
+            layersInFile.forEach(layer => {
+                layers.push({
+                    ...layer,
+                    filePath,
+                    fileUri: `file://${filePath}`
                 });
-            }
+            });
         }
         return layers;
     }
@@ -199,15 +198,14 @@ class GlobalCOPDataStore {
     getAllRefinements() {
         const refinements = [];
         for (const [filePath, result] of this.fileAnalysisResults) {
-            if (result.refinements) {
-                result.refinements.forEach(refinement => {
-                    refinements.push({
-                        ...refinement,
-                        filePath,
-                        fileUri: `file://${filePath}`
-                    });
+            const refinementsInFile = result.getRefinements ? result.getRefinements() : [];
+            refinementsInFile.forEach(refinement => {
+                refinements.push({
+                    ...refinement,
+                    filePath,
+                    fileUri: `file://${filePath}`
                 });
-            }
+            });
         }
         return refinements;
     }
@@ -232,8 +230,8 @@ class GlobalCOPDataStore {
         let totalSymbols = 0;
 
         for (const result of this.fileAnalysisResults.values()) {
-            totalLayers += (result.layers || []).length;
-            totalRefinements += (result.refinements || []).length;
+            totalLayers += result.getLayers ? result.getLayers().length : 0;
+            totalRefinements += result.getRefinements ? result.getRefinements().length : 0;
             totalSymbols += (result.symbolIndex || []).length;
         }
 

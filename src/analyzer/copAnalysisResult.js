@@ -221,22 +221,19 @@ class COPAnalysisResult {
     _buildSymbolIndex() {
         this.symbolIndex = [];
         
-        for (let i = 0; i < this.entities.length; i++) {
-            const entity = this.entities[i];
-            if (entity.symbols) {
-                for (const symbol of entity.symbols) {
-                    this.symbolIndex.push({
-                        start: symbol.range.start,
-                        end: symbol.range.end,
-                        entityIndex: i,
-                        symbol: symbol
-                    });
-                }
-            }
+        // Add all entities to symbolIndex for Hover
+        for (const entity of this.entities) {
+            this.symbolIndex.push({
+                line: entity.line,
+                type: entity.type,
+                name: entity.name,
+                data: entity.details || entity._original,
+                range: entity.position
+            });
         }
         
-        // Sort by start position
-        this.symbolIndex.sort((a, b) => a.start - b.start);
+        // Sort by line number
+        this.symbolIndex.sort((a, b) => a.line - b.line);
     }
 
     /**
@@ -364,22 +361,6 @@ class COPAnalysisResult {
         return this.copOperations;
     }
 
-
-    /**
-     * Backward compatibility: refinements getter
-     * @returns {Array} All refinements (for backward compatibility)
-     */
-    get refinements() {
-        return this.refinementResults;
-    }
-
-    /**
-     * Backward compatibility: layers getter  
-     * @returns {Array} All layers (for backward compatibility)
-     */
-    get layers() {
-        return this.layerResults;
-    }
 
     /**
      * Get layer info (similar to SymbolRegistry.getLayerInfo)
