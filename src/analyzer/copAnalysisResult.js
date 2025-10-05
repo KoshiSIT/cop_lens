@@ -364,6 +364,23 @@ class COPAnalysisResult {
         return this.copOperations;
     }
 
+
+    /**
+     * Backward compatibility: refinements getter
+     * @returns {Array} All refinements (for backward compatibility)
+     */
+    get refinements() {
+        return this.refinementResults;
+    }
+
+    /**
+     * Backward compatibility: layers getter  
+     * @returns {Array} All layers (for backward compatibility)
+     */
+    get layers() {
+        return this.layerResults;
+    }
+
     /**
      * Get layer info (similar to SymbolRegistry.getLayerInfo)
      * @param {string} layerName - Layer name
