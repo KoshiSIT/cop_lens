@@ -7,8 +7,9 @@
  * - WebView表示用のデータ提供
  */
 class DependencyGraphProvider {
-    constructor(analysisResult) {
+    constructor(analysisResult, globalStore = null) {
         this.result = analysisResult;
+        this.globalStore = globalStore;
     }
 
     /**
@@ -16,6 +17,21 @@ class DependencyGraphProvider {
      * @returns {Object} グラフデータ {nodes, edges, hierarchy, summary}
      */
     buildGraph() {
+        // Use globalStore if available
+        if (this.globalStore) {
+            const globalGraph = this.globalStore.getDependencyGraph();
+            if (globalGraph) {
+                const hierarchy = this.calculateHierarchy(globalGraph);
+                return {
+                    nodes: globalGraph.nodes || [],
+                    edges: globalGraph.edges || [],
+                    hierarchy,
+                    summary: this.calculateSummary(globalGraph)
+                };
+            }
+        }
+        
+        // Fallback to local result
         if (!this.result || !this.result.dependencies) {
             return this.createEmptyGraph();
         }

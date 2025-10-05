@@ -8,20 +8,24 @@ const { TreeViewProvider } = require("../features/treeViewProvider");
  * 内部で新しいTreeViewProviderを使用する
  */
 class COPTreeProviderAdapter {
-    constructor() {
+    constructor(globalStore = null) {
         this._onDidChangeTreeData = new vscode.EventEmitter();
         this.onDidChangeTreeData = this._onDidChangeTreeData.event;
         this.analysisResult = null;
         this.treeViewProvider = null;
+        this.globalStore = globalStore;
+        this.currentFilePath = null;
     }
 
     /**
      * 解析結果を設定して更新
      * @param {Object} analysisResult - COPAnalyzerからの解析結果
+     * @param {string} filePath - ファイルパス
      */
-    setAnalysisResult(analysisResult) {
+    setAnalysisResult(analysisResult, filePath = null) {
         this.analysisResult = analysisResult;
-        this.treeViewProvider = new TreeViewProvider(analysisResult);
+        this.currentFilePath = filePath;
+        this.treeViewProvider = new TreeViewProvider(analysisResult, this.globalStore);
         this._onDidChangeTreeData.fire();
     }
 

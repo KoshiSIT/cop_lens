@@ -6,8 +6,9 @@
  * - Hover表示用のコンテンツ生成
  */
 class HoverProvider {
-    constructor(analysisResult) {
+    constructor(analysisResult, globalStore = null) {
         this.result = analysisResult;
+        this.globalStore = globalStore;
     }
 
     /**
@@ -37,7 +38,13 @@ class HoverProvider {
      * @param {Object} position - {line, character}
      * @returns {Object|null} エンティティ or null
      */
-    findEntityAt(position) {
+    findEntityAt(position, filePath = null) {
+        // Use globalStore if available
+        if (this.globalStore && filePath) {
+            return this.globalStore.findEntityAt(filePath, position);
+        }
+        
+        // Fallback to local result
         if (!this.result || !this.result.symbolIndex) {
             return null;
         }

@@ -4,6 +4,7 @@ const vscode = require("vscode");
 // Unified architecture
 const { COPAnalyzer } = require("./src/analyzer/copAnalyzer");
 const { ProjectAnalyzer } = require("./src/analyzer/projectAnalyzer");
+const { GlobalCOPDataStore } = require("./src/analyzer/globalCOPDataStore");
 
 // UI Adapters
 const { COPTreeProviderAdapter } = require("./src/ui/treeProviderAdapter");
@@ -27,9 +28,12 @@ function activate(context) {
         console.log("Loading dependencies...");
         const dependencyGraphView = new DependencyGraphView(context);
         
-        // Initialize providers
-        const treeProvider = new COPTreeProviderAdapter();
-        const hoverProvider = new COPHoverProviderAdapter();
+        // Initialize Global Data Store
+        const globalStore = new GlobalCOPDataStore();
+        
+        // Initialize providers with globalStore
+        const treeProvider = new COPTreeProviderAdapter(globalStore);
+        const hoverProvider = new COPHoverProviderAdapter(globalStore);
         
         // Register hover provider for JavaScript files
         const hoverDisposable = vscode.languages.registerHoverProvider(
@@ -40,41 +44,55 @@ function activate(context) {
         // Register tree data provider
         vscode.window.registerTreeDataProvider("copOverview", treeProvider);
 
-        function analyzeCurrentFile() {
+        /**
+         * Update global store with current file analysis
+         */
+        function updateGlobalStore() {
             const editor = vscode.window.activeTextEditor;
             if (!editor || editor.document.languageId !== "javascript") {
-                // Clear providers
-                treeProvider.setAnalysisResult(null);
-                hoverProvider.setAnalysisResult(null);
                 return;
             }
 
-            console.log("Analyzing current file...");
+            console.log("Updating global store...");
             const code = editor.document.getText();
             const filePath = editor.document.fileName;
             
-            // Use unified COPAnalyzer
+            // Analyze current file and update global store
             const analyzer = new COPAnalyzer(filePath);
             const analysisResult = analyzer.analyze(code);
             
-            console.log(`Detected ${analysisResult.layers.length} layers, ${analysisResult.refinements.length} refinements`);
+            globalStore.updateFile(filePath, analysisResult);
             
-            // Update UI components
-            treeProvider.setAnalysisResult(analysisResult);
-            hoverProvider.setAnalysisResult(analysisResult);
+            console.log(`[Store] Updated ${filePath}: ${analysisResult.layers.length} layers, ${analysisResult.refinements.length} refinements`);
+            
+            // Update UI components (they read from globalStore)
+            const fileAnalysis = globalStore.getFileAnalysis(filePath);
+            treeProvider.setAnalysisResult(fileAnalysis, filePath);
+            hoverProvider.setAnalysisResult(fileAnalysis);
+            
+            // Log statistics
+            const stats = globalStore.getStatistics();
+            console.log(`[Store] Total: ${stats.totalFiles} files, ${stats.totalLayers} layers, ${stats.totalRefinements} refinements`);
         }
 
-        analyzeCurrentFile();
+        // Initialize project root
+        const editor = vscode.window.activeTextEditor;
+        if (editor) {
+            const projectRoot = determineProjectRoot(editor.document);
+            globalStore.setProjectRoot(projectRoot);
+        }
+        
+        updateGlobalStore();
 
-        // update analysis when the file is changed
+        // Update store when the file is changed
         const changeListener = vscode.window.onDidChangeActiveTextEditor(() => {
-            analyzeCurrentFile();
+            updateGlobalStore();
         });
 
-        // update analysis when saved
+        // Update store when saved
         const saveListener = vscode.workspace.onDidSaveTextDocument((document) => {
             if (document.languageId === "javascript") {
-                analyzeCurrentFile();
+                updateGlobalStore();
             }
         });
         

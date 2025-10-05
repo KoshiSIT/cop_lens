@@ -19,7 +19,7 @@ function calculateHierarchyLevels(classes, instances, methods, edges) {
     const { levels, adjacencyList, inDegree } = initializeDataStructures(
         classes,
         instances,
-        methods
+        methods,
     );
 
     // Step 2: Build graph from edges
@@ -29,7 +29,7 @@ function calculateHierarchyLevels(classes, instances, methods, edges) {
     const rootNodes = findRootNodes(inDegree);
 
     if (rootNodes.length === 0) {
-        console.warn("  ⚠️ No root nodes found! Possible circular dependency.");
+        console.warn(" No  root nodes found! Possible circular dependency.");
         return levels;
     }
 

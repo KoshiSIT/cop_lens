@@ -8,9 +8,10 @@ const { HoverProvider } = require("../features/hoverProvider");
  * 内部で新しいHoverProviderを使用する
  */
 class COPHoverProviderAdapter {
-    constructor() {
+    constructor(globalStore = null) {
         this.analysisResult = null;
         this.hoverProvider = null;
+        this.globalStore = globalStore;
     }
 
     /**
@@ -19,7 +20,7 @@ class COPHoverProviderAdapter {
      */
     setAnalysisResult(analysisResult) {
         this.analysisResult = analysisResult;
-        this.hoverProvider = new HoverProvider(analysisResult);
+        this.hoverProvider = new HoverProvider(analysisResult, this.globalStore);
     }
 
     /**
@@ -39,7 +40,23 @@ class COPHoverProviderAdapter {
             character: position.character
         };
 
-        const hoverInfo = this.hoverProvider.provideHover(pos);
+        // globalStoreを使う場合はfilePathも渡す
+        const filePath = document.fileName;
+        const entity = this.hoverProvider.findEntityAt(pos, filePath);
+        
+        if (!entity) {
+            return null;
+        }
+        
+        const content = this.hoverProvider.generateHoverContent(entity);
+        if (!content) {
+            return null;
+        }
+        
+        const hoverInfo = {
+            contents: content,
+            range: entity.range
+        };
         if (!hoverInfo) {
             return null;
         }

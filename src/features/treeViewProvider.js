@@ -7,8 +7,9 @@
  * - VSCode UIとの連携用データ構造を提供
  */
 class TreeViewProvider {
-    constructor(analysisResult) {
+    constructor(analysisResult, globalStore = null) {
         this.result = analysisResult;
+        this.globalStore = globalStore;
     }
 
     /**

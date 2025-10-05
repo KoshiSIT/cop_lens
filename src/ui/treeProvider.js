@@ -8,10 +8,10 @@ class COPTreeProvider {
     }
 
     /**
-     * Update the tree view with new layer detection results
+     * Set the results to display in the tree view
      * @param {Array} layerResults - Array of detected layer objects and refinement operations
      */
-    updateResults(layerResults) {
+    setResults(layerResults) {
         this.results = layerResults;
         this._onDidChangeTreeData.fire();
     }
@@ -85,6 +85,8 @@ class COPTreeProvider {
                 return `EMA.addPartialMethod (line ${result.line})`;
             case "refinement_proceed":
                 return `Layer.proceed (line ${result.line})`;
+            case "refinement_deploy":
+                return `EMA.deploy (line ${result.line})`;
             default:
                 return `Unknown (line ${result.line})`;
         }
@@ -106,6 +108,8 @@ class COPTreeProvider {
                 return `${result.targetObject}.${result.methodName} ← ${result.layerObject}`;
             case "refinement_proceed":
                 return "Call base method";
+            case "refinement_deploy":
+                return `Deploy layer: ${result.layerObject}`;
             default:
                 return "Unknown construct";
         }
@@ -129,6 +133,10 @@ class COPTreeProvider {
                 return `EMA.addPartialMethod\nLayer: ${result.layerObject}\nTarget: ${result.targetObject}\nMethod: ${result.methodName}`;
             case "refinement_proceed":
                 return "Layer.proceed() - Call base method implementation";
+            case "refinement_deploy":
+                return `EMA.deploy
+Layer: ${result.layerObject}
+Activates layer within current scope`;
             default:
                 return "Unknown COP construct";
         }
@@ -176,6 +184,12 @@ class COPTreeProvider {
                 item.iconPath = new vscode.ThemeIcon(
                     "arrow-right",
                     new vscode.ThemeColor("charts.yellow"),
+                );
+                break;
+            case "refinement_deploy":
+                item.iconPath = new vscode.ThemeIcon(
+                    "rocket",
+                    new vscode.ThemeColor("charts.red"),
                 );
                 break;
             default:
