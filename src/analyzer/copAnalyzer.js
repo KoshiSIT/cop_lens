@@ -130,7 +130,8 @@ class COPAnalyzer {
                 }
                 
                 // Edge: Refinement → Method (original method)
-                const methodId = `${refinement.targetObject}_${refinement.methodName}`;
+                // Use dot notation to match existing method node IDs
+                const methodId = `${refinement.targetObject}.${refinement.methodName}`;
                 edges.push({
                     data: {
                         source: refId,
