@@ -149,30 +149,63 @@ class UnifiedProjectAnalyzer {
             return true;
         });
         
-        // Update edges to point to Layer definition nodes
-        const updatedEdges = allEdges.map(edge => {
-            // Find if target is a removed Layer instance
-            const targetIsRemovedInstance = allNodes.some(n => 
-                n.data.id === edge.data.target && 
-                n.data.type === 'instance' && 
-                n.data.className === 'Layer' &&
-                layerDefinitionNames.has(n.data.name)
-            );
+        // Get IDs of removed Layer instance nodes
+        const removedLayerInstanceIds = new Set();
+        allNodes.forEach(node => {
+            if (node.data.type === 'instance' && 
+                node.data.className === 'Layer' &&
+                layerDefinitionNames.has(node.data.name)) {
+                removedLayerInstanceIds.add(node.data.id);
+            }
+        });
+        
+        // Update edges: redirect from/to removed Layer instances to Layer definition nodes
+        const updatedEdgesStep1 = allEdges.map(edge => {
+            let newEdge = edge;
             
-            if (targetIsRemovedInstance) {
-                // Find the target node to get its name
-                const targetNode = allNodes.find(n => n.data.id === edge.data.target);
-                if (targetNode) {
-                    return {
-                        ...edge,
+            // If source is a removed Layer instance, redirect to Layer definition
+            if (removedLayerInstanceIds.has(edge.data.source)) {
+                const sourceNode = allNodes.find(n => n.data.id === edge.data.source);
+                if (sourceNode && layerDefinitionNames.has(sourceNode.data.name)) {
+                    console.log(`[UnifiedAnalyzer] Redirecting edge source: ${edge.data.source} → Layer_${sourceNode.data.name}`);
+                    newEdge = {
+                        ...newEdge,
                         data: {
-                            ...edge.data,
+                            ...newEdge.data,
+                            source: `Layer_${sourceNode.data.name}`
+                        }
+                    };
+                }
+            }
+            
+            // If target is a removed Layer instance, redirect to Layer definition
+            if (removedLayerInstanceIds.has(edge.data.target)) {
+                const targetNode = allNodes.find(n => n.data.id === edge.data.target);
+                if (targetNode && layerDefinitionNames.has(targetNode.data.name)) {
+                    console.log(`[UnifiedAnalyzer] Redirecting edge target: ${edge.data.target} → Layer_${targetNode.data.name}`);
+                    newEdge = {
+                        ...newEdge,
+                        data: {
+                            ...newEdge.data,
                             target: `Layer_${targetNode.data.name}`
                         }
                     };
                 }
             }
-            return edge;
+            
+            return newEdge;
+        });
+        
+        // Remove duplicate edges after redirection
+        const updatedEdges = updatedEdgesStep1.filter((edge, index, self) => {
+            // Check if this edge is a duplicate
+            const isDuplicate = self.findIndex(e => 
+                e.data.source === edge.data.source &&
+                e.data.target === edge.data.target &&
+                e.data.type === edge.data.type
+            ) !== index;
+            
+            return !isDuplicate;
         });
 
         // サマリーを計算
