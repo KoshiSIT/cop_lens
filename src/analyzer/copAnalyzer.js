@@ -165,15 +165,15 @@ class COPAnalyzer {
                     });
                 }
                 
-                // Edge: Refinement → Method (original method)
+                // Edge: Method → Refinement (method is refined by this refinement)
                 // Use dot notation to match existing method node IDs
                 const methodId = `${refinement.targetObject}.${refinement.methodName}`;
                 updatedEdges.push({
                     data: {
-                        source: refId,
-                        target: methodId,
-                        type: 'refines',
-                        description: `Refines ${refinement.targetObject}.${refinement.methodName}()`
+                        source: methodId,
+                        target: refId,
+                        type: 'refined_by',
+                        description: `${refinement.targetObject}.${refinement.methodName}() is refined by this layer`
                     }
                 });
             }

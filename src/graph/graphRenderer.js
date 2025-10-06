@@ -430,15 +430,15 @@ class GraphRenderer {
                 }
             },
 
-            // Refines edges (red solid)
+            // Refined by edges (red solid, method → refinement)
             {
-                selector: 'edge[type="refines"]',
+                selector: 'edge[type="refined_by"]',
                 style: {
                     'line-color': '#F44336',
                     'target-arrow-color': '#F44336',
                     'width': 2,
                     'line-style': 'solid',
-                    'label': 'refines'
+                    'label': ''
                 }
             },
 
