@@ -1,9 +1,15 @@
-const { Signal } = require("../../lib/EMAjs-master/loader");
+const { Signal, EMA } = require("../../lib/EMAjs-master/loader");
 const EditorWidget = require("./EditorWidget");
+const layerOnlineEditor = require("./layers");
 
 /**
  * RemoteEditor class - main orchestrator
  * Manages editor, server connection state, and remote work sessions
+ * 
+ * Properties:
+ *   - editor: EditorWidget instance
+ *   - server: Signal for server connection state
+ *   - onlineLayer: Layer instance for online behavior
  */
 class RemoteEditor {
     constructor() {
@@ -12,6 +18,24 @@ class RemoteEditor {
         
         // Server connection state (Signal)
         this.server = new Signal(false);  // false = offline, true = online
+        
+        // Setup COP layers
+        this.setupCOP();
+    }
+    
+    /**
+     * Setup Context-Oriented Programming
+     */
+    setupCOP() {
+        // Exhibit server signal for layer condition
+        EMA.exhibit(this, {
+            serverConnected: this.server
+        });
+        
+        // Deploy layer and store instance
+        this.onlineLayer = EMA.deploy(layerOnlineEditor);
+        
+        console.log("RemoteEditor: COP layers initialized");
     }
 
     /**
