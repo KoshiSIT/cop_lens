@@ -418,15 +418,15 @@ class GraphRenderer {
                 }
             },
 
-            // Belongs to layer edges (purple dashed)
+            // Has refinement edges (purple dashed, Layer → Refinement)
             {
-                selector: 'edge[type="belongs_to_layer"]',
+                selector: 'edge[type="has_refinement"]',
                 style: {
                     'line-color': '#9C27B0',
                     'target-arrow-color': '#9C27B0',
                     'width': 2,
                     'line-style': 'dashed',
-                    'label': 'in'
+                    'label': ''
                 }
             },
 

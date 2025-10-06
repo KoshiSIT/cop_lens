@@ -153,14 +153,14 @@ class COPAnalyzer {
                     }
                 });
                 
-                // Edge: Refinement → Layer
+                // Edge: Layer → Refinement (layer has this refinement)
                 if (refinement.layerObject) {
                     updatedEdges.push({
                         data: {
-                            source: refId,
-                            target: `Layer_${refinement.layerObject}`,
-                            type: 'belongs_to_layer',
-                            description: `Refinement belongs to layer ${refinement.layerObject}`
+                            source: `Layer_${refinement.layerObject}`,
+                            target: refId,
+                            type: 'has_refinement',
+                            description: `Layer ${refinement.layerObject} defines this refinement`
                         }
                     });
                 }
