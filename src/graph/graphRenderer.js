@@ -322,6 +322,38 @@ class GraphRenderer {
                 }
             },
 
+            // Layer nodes (light yellow rectangle)
+            {
+                selector: 'node[type="layer"]',
+                style: {
+                    'background-color': '#FFF9C4',  // 薄い黄色
+                    'label': 'data(label)',
+                    'shape': 'rectangle',
+                    'border-color': '#FBC02D',
+                    'border-width': 2,
+                    'width': 120,
+                    'height': 50,
+                    'font-size': '12px',
+                    'text-valign': 'center',
+                    'text-halign': 'center'
+                }
+            },
+
+            // Refinement nodes (pink rectangle)
+            {
+                selector: 'node[type="refinement"]',
+                style: {
+                    'background-color': '#F8BBD0',
+                    'label': 'data(label)',
+                    'shape': 'rectangle',
+                    'border-color': '#E91E63',
+                    'border-width': 2,
+                    'width': 100,
+                    'height': 40,
+                    'font-size': '10px'
+                }
+            },
+
             // Class nodes (green)
             {
                 selector: 'node[type="class"]',
@@ -383,6 +415,30 @@ class GraphRenderer {
                     'text-rotation': 'autorotate',
                     'text-margin-x': 0,
                     'text-margin-y': -10
+                }
+            },
+
+            // Belongs to layer edges (purple dashed)
+            {
+                selector: 'edge[type="belongs_to_layer"]',
+                style: {
+                    'line-color': '#9C27B0',
+                    'target-arrow-color': '#9C27B0',
+                    'width': 2,
+                    'line-style': 'dashed',
+                    'label': 'in'
+                }
+            },
+
+            // Refines edges (red solid)
+            {
+                selector: 'edge[type="refines"]',
+                style: {
+                    'line-color': '#F44336',
+                    'target-arrow-color': '#F44336',
+                    'width': 2,
+                    'line-style': 'solid',
+                    'label': 'refines'
                 }
             },
 

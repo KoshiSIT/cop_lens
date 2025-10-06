@@ -49,11 +49,13 @@ class COPAnalyzer {
             const result = new COPAnalysisResult();
             result.mergeLayerResults(layers);
             result.mergeRefinementResults(refinements);  // ← ここで分類される
-            // dependencies は Graph構造なので、そのまま保存
-            result.dependencies = dependencies;
+            
+            // 3. Layerノードをdependenciesグラフにマージ
+            result.dependencies = this.mergeCOPIntoGraph(dependencies, layers, refinements);
+            
             result.buildIndices();
             
-            // 3. 統合結果を返す
+            // 4. 統合結果を返す
             return result;
             
         } catch (error) {
@@ -65,6 +67,90 @@ class COPAnalyzer {
             }
             return this.createEmptyResult();
         }
+    }
+
+    /**
+     * Merge COP constructs (Layers, Refinements) into the dependency graph
+     * @param {Object} graph - Dependency graph from BabelObjectDependencyDetector
+     * @param {Array} layers - Detected layers
+     * @param {Array} refinements - Detected refinements
+     * @returns {Object} Enhanced graph with COP nodes and edges
+     */
+    mergeCOPIntoGraph(graph, layers, refinements) {
+        const nodes = [...(graph.nodes || [])];
+        const edges = [...(graph.edges || [])];
+        
+        // Add Layer nodes
+        for (const layer of layers) {
+            nodes.push({
+                data: {
+                    id: `Layer_${layer.name}`,
+                    label: layer.name,
+                    name: layer.name,
+                    type: 'layer',
+                    file: this.filePath,
+                    line: layer.line,
+                    description: `Layer: ${layer.name}`,
+                    condition: layer.condition,
+                    conditionType: layer.conditionType
+                }
+            });
+        }
+        
+        // Add Refinement nodes and edges
+        for (const refinement of refinements) {
+            const refType = refinement.type;
+            
+            if (refType === 'refinement_addPartialMethod') {
+                const refId = `Refinement_${refinement.targetObject}_${refinement.methodName}`;
+                
+                // Add refinement node
+                nodes.push({
+                    data: {
+                        id: refId,
+                        label: `${refinement.targetObject}.${refinement.methodName}`,
+                        name: refinement.methodName,
+                        type: 'refinement',
+                        file: this.filePath,
+                        line: refinement.line,
+                        description: `Refinement: ${refinement.targetObject}.${refinement.methodName}()`
+                    }
+                });
+                
+                // Edge: Refinement → Layer
+                if (refinement.layerObject) {
+                    edges.push({
+                        data: {
+                            source: refId,
+                            target: `Layer_${refinement.layerObject}`,
+                            type: 'belongs_to_layer',
+                            description: `Refinement belongs to layer ${refinement.layerObject}`
+                        }
+                    });
+                }
+                
+                // Edge: Refinement → Method (original method)
+                const methodId = `${refinement.targetObject}_${refinement.methodName}`;
+                edges.push({
+                    data: {
+                        source: refId,
+                        target: methodId,
+                        type: 'refines',
+                        description: `Refines ${refinement.targetObject}.${refinement.methodName}()`
+                    }
+                });
+            }
+        }
+        
+        return {
+            nodes,
+            edges,
+            summary: {
+                ...graph.summary,
+                layers: layers.length,
+                refinements: refinements.length
+            }
+        };
     }
     
     /**
