@@ -9,7 +9,7 @@ const layerOnlineEditor = require("./layers");
  * Properties:
  *   - editor: EditorWidget instance
  *   - server: Signal for server connection state
- *   - onlineLayer: Layer instance for online behavior
+ *   - layerOnlineEditor: Layer instance (from layers.js)
  */
 class RemoteEditor {
     constructor() {
@@ -32,8 +32,8 @@ class RemoteEditor {
             serverConnected: this.server
         });
         
-        // Deploy layer and store instance
-        this.onlineLayer = EMA.deploy(layerOnlineEditor);
+        // Store reference to Layer instance
+        this.layerOnlineEditor = layerOnlineEditor;
         
         console.log("RemoteEditor: COP layers initialized");
     }

@@ -173,7 +173,8 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
             if (node.right && node.right.type === 'NewExpression') {
                 this.detectComposition(propertyName, node.right, node);
             } else if (node.right && node.right.type === 'Identifier') {
-                this.detectAggregation(propertyName, node.right, node);
+                // Check if this is a reference to an external instance
+                this.detectAggregationOrReference(propertyName, node.right, node);
             } else if (node.right && node.right.type === 'CallExpression') {
                 // Handle: this.prop = someFunction()
                 // Try to infer type from function name or return type
@@ -294,6 +295,54 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
         };
         
         this.dependencies.push(dependency);
+    }
+
+    /**
+     * Detect aggregation or reference to external instance
+     * @param {string} propertyName - Property name
+     * @param {Object} identifier - Identifier node
+     * @param {Object} assignNode - Assignment node
+     */
+    detectAggregationOrReference(propertyName, identifier, assignNode) {
+        const varName = identifier.name;
+        
+        // Try to infer class name from variable name
+        // Examples: layerOnlineEditor -> Layer, server -> Signal
+        let className = 'Unknown';
+        
+        // Pattern 1: layerXxx -> Layer
+        if (varName.startsWith('layer')) {
+            className = 'Layer';
+        }
+        // Pattern 2: xxxSignal or server (common Signal names)
+        else if (varName.includes('Signal') || varName === 'server') {
+            className = 'Signal';
+        }
+        // Pattern 3: Capitalize first letter
+        else {
+            className = varName.charAt(0).toUpperCase() + varName.slice(1);
+        }
+        
+        // Create instance node
+        const instanceId = `${this.currentClass}_${propertyName}`;
+        
+        this.instances.set(instanceId, {
+            id: instanceId,
+            name: propertyName,
+            className: className,
+            file: this.currentFile,
+            line: assignNode.loc?.start.line || 0,
+            description: `Instance of ${className} (referenced from ${varName})`
+        });
+        
+        // Create dependency
+        this.dependencies.push({
+            source: this.currentClass,
+            target: className,
+            type: 'composition',
+            property: propertyName,
+            description: `${this.currentClass} has ${propertyName} of type ${className}`
+        });
     }
 
     /**
