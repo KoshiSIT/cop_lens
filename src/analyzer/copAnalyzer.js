@@ -80,9 +80,45 @@ class COPAnalyzer {
         const nodes = [...(graph.nodes || [])];
         const edges = [...(graph.edges || [])];
         
-        // Add Layer nodes
+        // Build a map of layer names for quick lookup
+        const layerNames = new Set(layers.map(l => l.name));
+        
+        // Remove Layer instance nodes that have corresponding Layer definitions
+        // We'll replace them with Layer definition nodes
+        const filteredNodes = nodes.filter(node => {
+            if (node.data.type === 'instance' && node.data.className === 'Layer') {
+                const instanceName = node.data.name;
+                // Check if there's a Layer definition with this name
+                if (layerNames.has(instanceName)) {
+                    console.log(`[COPAnalyzer] Removing duplicate Layer instance: ${instanceName}`);
+                    return false; // Remove this instance node
+                }
+            }
+            return true;
+        });
+        
+        // Update edges to point to Layer definition nodes instead of instance nodes
+        const updatedEdges = edges.map(edge => {
+            // If edge target is a Layer instance, redirect to Layer definition
+            const targetNode = nodes.find(n => n.data.id === edge.data.target);
+            if (targetNode && targetNode.data.type === 'instance' && targetNode.data.className === 'Layer') {
+                const layerName = targetNode.data.name;
+                if (layerNames.has(layerName)) {
+                    return {
+                        ...edge,
+                        data: {
+                            ...edge.data,
+                            target: `Layer_${layerName}`
+                        }
+                    };
+                }
+            }
+            return edge;
+        });
+        
+        // Add Layer nodes (these replace the instance nodes)
         for (const layer of layers) {
-            nodes.push({
+            filteredNodes.push({
                 data: {
                     id: `Layer_${layer.name}`,
                     label: layer.name,
@@ -105,7 +141,7 @@ class COPAnalyzer {
                 const refId = `Refinement_${refinement.targetObject}_${refinement.methodName}`;
                 
                 // Add refinement node
-                nodes.push({
+                filteredNodes.push({
                     data: {
                         id: refId,
                         label: `${refinement.targetObject}.${refinement.methodName}`,
@@ -119,7 +155,7 @@ class COPAnalyzer {
                 
                 // Edge: Refinement → Layer
                 if (refinement.layerObject) {
-                    edges.push({
+                    updatedEdges.push({
                         data: {
                             source: refId,
                             target: `Layer_${refinement.layerObject}`,
@@ -132,7 +168,7 @@ class COPAnalyzer {
                 // Edge: Refinement → Method (original method)
                 // Use dot notation to match existing method node IDs
                 const methodId = `${refinement.targetObject}.${refinement.methodName}`;
-                edges.push({
+                updatedEdges.push({
                     data: {
                         source: refId,
                         target: methodId,
@@ -144,8 +180,8 @@ class COPAnalyzer {
         }
         
         return {
-            nodes,
-            edges,
+            nodes: filteredNodes,
+            edges: updatedEdges,
             summary: {
                 ...graph.summary,
                 layers: layers.length,

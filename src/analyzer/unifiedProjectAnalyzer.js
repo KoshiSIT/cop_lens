@@ -132,18 +132,62 @@ class UnifiedProjectAnalyzer {
             }
         }
 
+        // Remove duplicate Layer instance nodes
+        // If a Layer definition node exists with the same name, remove the instance node
+        const layerDefinitionNames = new Set(
+            allNodes.filter(n => n.data.type === 'layer').map(n => n.data.name)
+        );
+        
+        const filteredNodes = allNodes.filter(node => {
+            if (node.data.type === 'instance' && node.data.className === 'Layer') {
+                const instanceName = node.data.name;
+                if (layerDefinitionNames.has(instanceName)) {
+                    console.log(`[UnifiedAnalyzer] Removing duplicate Layer instance: ${instanceName}`);
+                    return false;
+                }
+            }
+            return true;
+        });
+        
+        // Update edges to point to Layer definition nodes
+        const updatedEdges = allEdges.map(edge => {
+            // Find if target is a removed Layer instance
+            const targetIsRemovedInstance = allNodes.some(n => 
+                n.data.id === edge.data.target && 
+                n.data.type === 'instance' && 
+                n.data.className === 'Layer' &&
+                layerDefinitionNames.has(n.data.name)
+            );
+            
+            if (targetIsRemovedInstance) {
+                // Find the target node to get its name
+                const targetNode = allNodes.find(n => n.data.id === edge.data.target);
+                if (targetNode) {
+                    return {
+                        ...edge,
+                        data: {
+                            ...edge.data,
+                            target: `Layer_${targetNode.data.name}`
+                        }
+                    };
+                }
+            }
+            return edge;
+        });
+
         // サマリーを計算
         const summary = {
-            totalNodes: allNodes.length,
-            totalEdges: allEdges.length,
-            classes: allNodes.filter(n => n.data.type === 'class').length,
-            instances: allNodes.filter(n => n.data.type === 'instance').length,
-            dependencies: allEdges.length
+            totalNodes: filteredNodes.length,
+            totalEdges: updatedEdges.length,
+            classes: filteredNodes.filter(n => n.data.type === 'class').length,
+            instances: filteredNodes.filter(n => n.data.type === 'instance').length,
+            layers: filteredNodes.filter(n => n.data.type === 'layer').length,
+            dependencies: updatedEdges.length
         };
 
         return {
-            nodes: allNodes,
-            edges: allEdges,
+            nodes: filteredNodes,
+            edges: updatedEdges,
             summary
         };
     }
