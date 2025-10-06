@@ -22,7 +22,7 @@ class UnifiedProjectAnalyzer {
      * プロジェクト全体を解析
      * @returns {Object} { fileResults: Map, dependencyGraph: Object }
      */
-    async analyzeProject() {
+    async analyzeProject(store = null) {
         console.log(`[UnifiedAnalyzer] Analyzing project: ${this.projectRoot}`);
         
         // Step 1: ファイル収集
@@ -45,6 +45,11 @@ class UnifiedProjectAnalyzer {
                 const result = copAnalyzer.analyze(code);
                 fileResults.set(file, result);
                 successCount++;
+                
+                // If store is provided, save results immediately
+                if (store) {
+                    store.updateFile(file, result);
+                }
             } catch (error) {
                 console.error(`[UnifiedAnalyzer] Error analyzing ${file}:`, error.message);
                 errors.push({ file, error: error.message });
@@ -60,6 +65,11 @@ class UnifiedProjectAnalyzer {
 
         // Step 3: 依存グラフの構築
         const dependencyGraph = await this.buildDependencyGraph(fileResults);
+        
+        // If store is provided, save dependency graph
+        if (store) {
+            store.setDependencyGraph(dependencyGraph);
+        }
 
         console.log(`[UnifiedAnalyzer] Analysis complete: ${fileResults.size} files analyzed`);
 

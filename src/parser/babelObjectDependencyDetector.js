@@ -16,14 +16,6 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
     }
 
     /**
-     * Override detect to reset state
-     */
-    detect(code) {
-        this.reset();
-        return super.detect(code);
-    }
-
-    /**
      * Reset internal state
      */
     reset() {

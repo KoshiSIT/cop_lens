@@ -48,7 +48,7 @@ async function activate(context) {
         /**
          * Update global store with current file analysis
          */
-        function updateGlobalStore() {
+        async function updateGlobalStore() {
             const editor = vscode.window.activeTextEditor;
             if (!editor || editor.document.languageId !== "javascript") {
                 return;
@@ -61,26 +61,37 @@ async function activate(context) {
             if (globalStore.projectRoot === null) {
                 console.log(`[Store] Initializing project root: ${projectRoot}`);
                 globalStore.setProjectRoot(projectRoot);
+                
+                // First time: analyze entire project
+                console.log(`[Store] First file opened, analyzing entire project...`);
+                await initializeProjectAnalysis();
+                
             } else if (globalStore.hasProjectChanged(projectRoot)) {
                 console.log(`[Store] Project changed from ${globalStore.projectRoot} to ${projectRoot}, clearing store`);
                 globalStore.clear();
                 globalStore.setProjectRoot(projectRoot);
+                
+                // Project changed: analyze new project
+                console.log(`[Store] Project changed, analyzing new project...`);
+                await initializeProjectAnalysis();
+            } else {
+                // Same project: just update this file
+                const code = editor.document.getText();
+                const filePath = editor.document.fileName;
+                
+                // Analyze current file and update global store
+                const analyzer = new COPAnalyzer(filePath);
+                const analysisResult = analyzer.analyze(code);
+                
+                globalStore.updateFile(filePath, analysisResult);
+                
+                const layersCount = analysisResult.getLayers ? analysisResult.getLayers().length : 0;
+                const refinementsCount = analysisResult.getRefinements ? analysisResult.getRefinements().length : 0;
+                console.log(`[Store] Updated ${filePath}: ${layersCount} layers, ${refinementsCount} refinements`);
             }
             
-            const code = editor.document.getText();
-            const filePath = editor.document.fileName;
-            
-            // Analyze current file and update global store
-            const analyzer = new COPAnalyzer(filePath);
-            const analysisResult = analyzer.analyze(code);
-            
-            globalStore.updateFile(filePath, analysisResult);
-            
-            const layersCount = analysisResult.getLayers ? analysisResult.getLayers().length : 0;
-            const refinementsCount = analysisResult.getRefinements ? analysisResult.getRefinements().length : 0;
-            console.log(`[Store] Updated ${filePath}: ${layersCount} layers, ${refinementsCount} refinements`);
-            
             // Update UI components (they read from globalStore)
+            const filePath = editor.document.fileName;
             const fileAnalysis = globalStore.getFileAnalysis(filePath);
             treeProvider.setAnalysisResult(fileAnalysis, filePath);
             hoverProvider.setAnalysisResult(fileAnalysis);
@@ -185,21 +196,13 @@ async function activate(context) {
                 const fileName = vscode.workspace.asRelativePath(editor.document.fileName);
                 const projectRoot = determineProjectRoot(editor.document);
 
-                // Get or build project-wide dependency graph
+                // Always use project-wide dependency graph
                 let dependencyGraph = globalStore.getDependencyGraph();
                 
                 if (!dependencyGraph || dependencyGraph.nodes.length === 0) {
-                    console.log('[Graph] No dependency graph in store. Analyzing project...');
-                    vscode.window.showInformationMessage('Analyzing project for dependency graph...');
-                    
-                    // Analyze entire project
-                    await initializeProjectAnalysis();
-                    dependencyGraph = globalStore.getDependencyGraph();
-                    
-                    if (!dependencyGraph || dependencyGraph.nodes.length === 0) {
-                        vscode.window.showInformationMessage('No classes found in the project.');
-                        return;
-                    }
+                    console.log('[Graph] No dependency graph in store. First analysis may be in progress...');
+                    vscode.window.showInformationMessage('Please wait for project analysis to complete, or manually trigger "Initialize Project Analysis".');
+                    return;
                 }
                 
                 console.log('[Graph] Using project-wide dependency graph');
