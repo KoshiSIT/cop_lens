@@ -17,6 +17,36 @@ class FileCollector {
             '.serena',
             'lib'
         ];
+        
+        // Load .copignore file if exists
+        this.userExcludes = this._loadCopIgnore();
+    }
+    
+    /**
+     * Load patterns from .copignore file
+     * @private
+     * @returns {Array<string>} Exclude patterns from .copignore
+     */
+    _loadCopIgnore() {
+        const copignorePath = path.join(this.projectRoot, '.copignore');
+        
+        if (!fs.existsSync(copignorePath)) {
+            return [];
+        }
+        
+        try {
+            const content = fs.readFileSync(copignorePath, 'utf8');
+            const patterns = content
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line && !line.startsWith('#')); // Ignore empty lines and comments
+            
+            console.log(`[FileCollector] Loaded .copignore: ${patterns.length} patterns`);
+            return patterns;
+        } catch (error) {
+            console.error(`[FileCollector] Error reading .copignore:`, error.message);
+            return [];
+        }
     }
 
     /**
@@ -25,7 +55,7 @@ class FileCollector {
      * @returns {Array<string>} ファイルパスの配列
      */
     collectAllJavaScriptFiles(additionalExcludes = []) {
-        const excludePatterns = [...this.defaultExcludes, ...additionalExcludes];
+        const excludePatterns = [...this.defaultExcludes, ...this.userExcludes, ...additionalExcludes];
         const files = [];
         
         this._traverse(this.projectRoot, files, excludePatterns);

@@ -1,0 +1,16 @@
+# .copignore - COP Lens dependency graph exclusion patterns
+# Files and directories matching these patterns will be excluded from dependency analysis
+
+# EMA.js library files (browser version)
+ema
+
+# Test files
+*.test.js
+*.spec.js
+
+# Build output
+dist
+build
+
+# Examples (uncomment if needed)
+# examples

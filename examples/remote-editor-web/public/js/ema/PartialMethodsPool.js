@@ -1,0 +1,40 @@
+class PartialMethodsPool {
+
+    constructor() {
+        if (!PartialMethodsPool.instance) {
+            PartialMethodsPool.instance = this;
+            this.init();
+        }
+        return PartialMethodsPool.instance;
+    }
+
+    init() {
+        this._partialMethods = [];
+    }
+
+    add(obj, methodName, partialMethodImpl, originalLayer) {
+        this._partialMethods.push([obj, methodName, partialMethodImpl, originalLayer]);
+    }
+
+    _get(deployedLayer) {
+        return this._partialMethods.filter(function (partialMethod) {
+            let originalLayer = partialMethod[3];
+            return deployedLayer.__original__ === originalLayer;
+        });
+    }
+
+    forEachByLayer(deployedLayer, fun) {
+        let partialMethods = this._get(deployedLayer);
+
+        partialMethods.forEach(function (pm) {
+            let obj = pm[0];
+            let methodName = pm[1];
+            let partialMethodImpl = pm[2];
+            let originalLayer = pm[3];
+
+            fun(obj, methodName, partialMethodImpl, originalLayer);
+        });
+    }
+}
+
+export default new PartialMethodsPool();

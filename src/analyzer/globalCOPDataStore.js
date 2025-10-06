@@ -29,6 +29,26 @@ class GlobalCOPDataStore {
     }
 
     /**
+     * プロジェクトが変更されたかチェック
+     * @param {string} newProjectRoot - 新しいプロジェクトルート
+     * @returns {boolean} プロジェクトが変更された場合true
+     */
+    hasProjectChanged(newProjectRoot) {
+        return this.projectRoot !== null && this.projectRoot !== newProjectRoot;
+    }
+
+    /**
+     * ストアをクリア（新しいプロジェクトに切り替わったとき）
+     */
+    clear() {
+        console.log('[GlobalStore] Clearing all data for new project');
+        this.fileAnalysisResults.clear();
+        this.globalSymbolIndex = [];
+        this.dependencyGraph = null;
+        // projectRootはクリアしない（次のsetProjectRootで上書きされる）
+    }
+
+    /**
      * ファイルの解析結果を追加/更新
      * @param {string} filePath - ファイルパス
      * @param {Object} analysisResult - COPAnalyzerからの解析結果
@@ -169,7 +189,59 @@ class GlobalCOPDataStore {
      * @returns {Object|null} 依存グラフ
      */
     getDependencyGraph() {
-        return this.dependencyGraph;
+        // If project-wide graph exists, return it
+        if (this.dependencyGraph) {
+            return this.dependencyGraph;
+        }
+        
+        // Otherwise, aggregate graphs from all files
+        const aggregatedNodes = [];
+        const aggregatedEdges = [];
+        const nodeIds = new Set();
+        const edgeIds = new Set();
+        
+        for (const [filePath, analysisResult] of this.fileAnalysisResults) {
+            if (analysisResult && analysisResult.dependencies) {
+                const { nodes, edges } = analysisResult.dependencies;
+                
+                // Add unique nodes
+                if (nodes) {
+                    nodes.forEach(node => {
+                        const nodeId = node.data?.id || node.id;
+                        if (nodeId && !nodeIds.has(nodeId)) {
+                            nodeIds.add(nodeId);
+                            aggregatedNodes.push(node);
+                        }
+                    });
+                }
+                
+                // Add unique edges
+                if (edges) {
+                    edges.forEach(edge => {
+                        const edgeId = `${edge.source || edge.data?.source}-${edge.target || edge.data?.target}-${edge.data?.type}`;
+                        if (!edgeIds.has(edgeId)) {
+                            edgeIds.add(edgeId);
+                            aggregatedEdges.push(edge);
+                        }
+                    });
+                }
+            }
+        }
+        
+        // Return aggregated graph (or empty if no files analyzed)
+        if (aggregatedNodes.length === 0 && aggregatedEdges.length === 0) {
+            return null;
+        }
+        
+        return {
+            nodes: aggregatedNodes,
+            edges: aggregatedEdges,
+            summary: {
+                totalNodes: aggregatedNodes.length,
+                totalEdges: aggregatedEdges.length,
+                source: 'aggregated'
+            }
+        };
     }
 
     /**

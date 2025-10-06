@@ -5,6 +5,7 @@ const vscode = require("vscode");
 const { COPAnalyzer } = require("./src/analyzer/copAnalyzer");
 const { GlobalCOPDataStore } = require("./src/analyzer/globalCOPDataStore");
 const { UnifiedProjectAnalyzer } = require("./src/analyzer/unifiedProjectAnalyzer");
+const { BabelObjectDependencyDetector } = require("./src/parser/babelObjectDependencyDetector");
 
 // UI Adapters
 const { COPTreeProviderAdapter } = require("./src/ui/treeProviderAdapter");
@@ -54,6 +55,18 @@ async function activate(context) {
             }
 
             console.log("Updating global store...");
+            const projectRoot = determineProjectRoot(editor.document);
+            
+            // Initialize or check if project has changed
+            if (globalStore.projectRoot === null) {
+                console.log(`[Store] Initializing project root: ${projectRoot}`);
+                globalStore.setProjectRoot(projectRoot);
+            } else if (globalStore.hasProjectChanged(projectRoot)) {
+                console.log(`[Store] Project changed from ${globalStore.projectRoot} to ${projectRoot}, clearing store`);
+                globalStore.clear();
+                globalStore.setProjectRoot(projectRoot);
+            }
+            
             const code = editor.document.getText();
             const filePath = editor.document.fileName;
             
@@ -88,6 +101,13 @@ async function activate(context) {
 
             console.log("[Store] Initializing project-wide analysis...");
             const projectRoot = determineProjectRoot(editor.document);
+            
+            // Check if project has changed
+            if (globalStore.hasProjectChanged(projectRoot)) {
+                console.log(`[Store] Project changed from ${globalStore.projectRoot} to ${projectRoot}`);
+                globalStore.clear();
+            }
+            
             globalStore.setProjectRoot(projectRoot);
 
             try {
@@ -163,15 +183,16 @@ async function activate(context) {
 
             try {
                 const fileName = vscode.workspace.asRelativePath(editor.document.fileName);
+                const projectRoot = determineProjectRoot(editor.document);
 
-                // Retrieve dependency graph from store (no re-analysis!)
+                // Get or build project-wide dependency graph
                 let dependencyGraph = globalStore.getDependencyGraph();
                 
                 if (!dependencyGraph || dependencyGraph.nodes.length === 0) {
-                    console.log('[Graph] No dependency graph in store. Initializing project...');
-                    vscode.window.showInformationMessage('Analyzing project...');
+                    console.log('[Graph] No dependency graph in store. Analyzing project...');
+                    vscode.window.showInformationMessage('Analyzing project for dependency graph...');
                     
-                    // Initialize if not done yet
+                    // Analyze entire project
                     await initializeProjectAnalysis();
                     dependencyGraph = globalStore.getDependencyGraph();
                     
@@ -181,7 +202,7 @@ async function activate(context) {
                     }
                 }
                 
-                console.log('[Graph] Retrieved from store:', dependencyGraph.summary);
+                console.log('[Graph] Using project-wide dependency graph');
                 console.log('[Graph] Nodes:', dependencyGraph.nodes.length);
                 console.log('[Graph] Edges:', dependencyGraph.edges.length);
 

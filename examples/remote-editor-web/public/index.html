@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Editor - COP Demo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Remote Editor - COP Demo</h1>
+        </div>
+
+        <div class="content">
+            <!-- Connection Status -->
+            <div class="connection-status">
+                <div>
+                    <div class="status-label">Connection Status:</div>
+                    <div id="statusIndicator" class="status-indicator offline">OFFLINE</div>
+                </div>
+                
+                <div class="toggle-container">
+                    <span style="font-size: 14px; color: #666;">OFF</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="connectionToggle">
+                        <span class="slider"></span>
+                    </label>
+                    <span style="font-size: 14px; color: #666;">ON</span>
+                </div>
+            </div>
+
+            <!-- Editor Content -->
+            <div class="editor-section">
+                <label class="editor-label">Editor Content:</label>
+                <textarea 
+                    id="editorContent" 
+                    class="editor-textarea" 
+                    placeholder="Enter your document content here...">Sample document content for COP demonstration.
+This editor simulates online/offline behavior using Context-Oriented Programming.</textarea>
+            </div>
+
+            <!-- Save Button -->
+            <button id="saveButton" class="save-button">
+                <span>💾</span>
+                <span>Save Document</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- JavaScript -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
