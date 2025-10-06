@@ -174,10 +174,67 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
                 this.detectComposition(propertyName, node.right, node);
             } else if (node.right && node.right.type === 'Identifier') {
                 this.detectAggregation(propertyName, node.right, node);
+            } else if (node.right && node.right.type === 'CallExpression') {
+                // Handle: this.prop = someFunction()
+                // Try to infer type from function name or return type
+                this.detectCompositionFromCall(propertyName, node.right, node);
             } else {
                 this.detectProperty(propertyName, node);
             }
         }
+    }
+
+    /**
+     * Detect composition from function call (e.g., this.layer = EMA.deploy(...))
+     * @param {string} propertyName - Property name
+     * @param {Object} callNode - CallExpression node
+     * @param {Object} assignmentNode - Assignment node
+     */
+    detectCompositionFromCall(propertyName, callNode, assignmentNode) {
+        // Try to infer the class name from the call
+        let className = 'Unknown';
+        
+        // Case 1: EMA.deploy() -> Layer instance
+        if (callNode.callee.type === 'MemberExpression' &&
+            callNode.callee.object.name === 'EMA' &&
+            callNode.callee.property.name === 'deploy') {
+            className = 'Layer';
+        }
+        // Case 2: SomeClass.create() -> SomeClass instance
+        else if (callNode.callee.type === 'MemberExpression' &&
+                 callNode.callee.object.type === 'Identifier') {
+            className = callNode.callee.object.name;
+        }
+        // Case 3: createSomething() -> infer from name
+        else if (callNode.callee.type === 'Identifier') {
+            const funcName = callNode.callee.name;
+            // Try to extract class name from function name (e.g., createEditor -> Editor)
+            const match = funcName.match(/create(\w+)/i);
+            if (match) {
+                className = match[1];
+            } else {
+                className = funcName;
+            }
+        }
+        
+        const instanceId = `${this.currentClass}_${propertyName}`;
+        
+        this.instances.set(instanceId, {
+            id: instanceId,
+            name: propertyName,
+            className: className,
+            file: this.currentFile,
+            line: assignmentNode.loc?.start.line || 0,
+            description: `Instance of ${className} created by function call`
+        });
+        
+        this.dependencies.push({
+            source: this.currentClass,
+            target: className,
+            type: 'composition',
+            property: propertyName,
+            description: `${this.currentClass} has ${propertyName} of type ${className}`
+        });
     }
 
     /**
