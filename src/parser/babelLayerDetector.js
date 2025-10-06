@@ -55,9 +55,26 @@ class BabelLayerDetector extends BabelBaseDetector {
             // Detect: layerXXX.condition = ...
             // Detect: layerXXX.onEnter = ...
             // Detect: layerXXX.onExit = ...
+            // Detect: this.layerDef = { condition: ... }
             AssignmentExpression: (path) => {
                 const left = path.node.left;
+                const right = path.node.right;
                 
+                // Case 1: this.layerDef = { condition: "..." }
+                if (left.type === 'MemberExpression' &&
+                    left.object.type === 'ThisExpression' &&
+                    right.type === 'ObjectExpression') {
+                    
+                    if (this.isLayerObject(right)) {
+                        const propertyName = left.property.name;
+                        const layerInfo = this.extractLayerFromAssignment(propertyName, right, path.node);
+                        if (layerInfo) {
+                            results.push(layerInfo);
+                        }
+                    }
+                }
+                
+                // Case 2: layerXXX.condition = ...
                 if (left.type === 'MemberExpression' &&
                     left.object.type === 'Identifier') {
                     
@@ -319,6 +336,33 @@ class BabelLayerDetector extends BabelBaseDetector {
             type: "layer",
             constructorStyle: false,
             ...this.getNodeInfo(path.node)
+        };
+    }
+
+    /**
+     * Extract Layer information from assignment expression (this.layerDef = {...})
+     * @param {string} varName - Property name
+     * @param {Object} objectNode - ObjectExpression node
+     * @param {Object} assignmentNode - AssignmentExpression node
+     * @returns {Object|null} Layer information
+     */
+    extractLayerFromAssignment(varName, objectNode, assignmentNode) {
+        const conditionProp = objectNode.properties.find(p => p.key?.name === 'condition');
+        
+        if (!conditionProp) {
+            return null;
+        }
+        
+        const conditionValue = this.getConditionValue(conditionProp.value);
+        const conditionType = this.isSignalCondition(conditionProp.value) ? 'signal' : 'string';
+        
+        return {
+            name: varName,
+            condition: conditionValue,
+            conditionType: conditionType,
+            type: "layer",
+            constructorStyle: false,
+            ...this.getNodeInfo(assignmentNode)
         };
     }
 

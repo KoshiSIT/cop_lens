@@ -14,7 +14,12 @@ const {
 
 /**
  * RemoteEditor class - main orchestrator (remote-editor)
- * Properties: editor (EditorWidget instance), server, onlineLayer
+ * Properties: 
+ *   - editor: EditorWidget instance
+ *   - server: server object with send() method
+ *   - networkStatus: Signal for network connection state
+ *   - onlineLayerDefinition: Layer definition object
+ *   - onlineLayer: Layer instance (created by EMA.deploy)
  * Methods: workRemote()
  */
 class RemoteEditor {
@@ -87,8 +92,19 @@ class RemoteEditor {
             }.bind(this),
         );
 
-        // EMA.deploy: Deploy layer (creates onlineLayer instance)
-        EMA.deploy(this.onlineLayerDefinition);
+        EMA.addPartialMethod(
+            this.onlineLayerDefinition,
+            this.editor,
+            "render",
+            function() {
+                console.log("onlineEditor: online rendering mode");
+                // Call original render
+                return Layer.proceed();
+            }.bind(this),
+        );
+
+        // EMA.deploy: Deploy layer and store instance in onlineLayer property
+        this.onlineLayer = EMA.deploy(this.onlineLayerDefinition);
 
         console.log("RemoteEditor initialized with COP layers");
     }
