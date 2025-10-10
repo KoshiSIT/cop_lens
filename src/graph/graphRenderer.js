@@ -672,41 +672,81 @@ class GraphRenderer {
         
         .legend {
             display: flex;
-            gap: 15px;
+            gap: 20px;
             margin-bottom: 10px;
             flex-wrap: wrap;
+        }
+        
+        .legend-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .legend-section h4 {
+            margin: 0 0 5px 0;
+            font-size: 12px;
+            font-weight: bold;
+            color: #999;
+            text-transform: uppercase;
         }
         
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             font-size: 11px;
         }
         
         .legend-color {
-            width: 12px;
-            height: 12px;
-            border-radius: 2px;
+            width: 14px;
+            height: 14px;
             border: 1px solid #666;
+            flex-shrink: 0;
+        }
+        
+        .legend-round {
+            border-radius: 3px;
+        }
+        
+        .legend-rect {
+            border-radius: 1px;
+            border-width: 2px;
         }
         
         .legend-line {
-            width: 20px;
+            width: 24px;
             height: 2px;
             position: relative;
+            flex-shrink: 0;
         }
         
         .legend-line::after {
-            content: '';
+            content: '▶';
             position: absolute;
-            right: -4px;
-            top: -2px;
-            width: 0;
+            right: -8px;
+            top: -7px;
+            font-size: 8px;
+        }
+        
+        .legend-dashed {
+            background: none !important;
+            border-top: 2px dashed;
             height: 0;
-            border-left: 4px solid;
-            border-top: 2px solid transparent;
-            border-bottom: 2px solid transparent;
+        }
+        
+        .legend-dotted {
+            background: none !important;
+            border-top: 2px dotted;
+            height: 0;
+        }
+        
+        .legend-dashed::after {
+            color: #9C27B0;
+        }
+        
+        .legend-dotted::after {
+            color: #607D8B;
         }
         
         #node-info {
@@ -733,25 +773,54 @@ class GraphRenderer {
     
     <div class="info-panel">
         <div class="legend">
-            <div class="legend-item">
-                <div class="legend-color" style="background: #4CAF50;"></div>
-                <span>Class</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #FF9800;"></div>
-                <span>Instance</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-line" style="background: #2196F3;">
-                    <div style="color: #2196F3;">▶</div>
+            <!-- Node Types -->
+            <div class="legend-section">
+                <h4>Nodes</h4>
+                <div class="legend-item">
+                    <div class="legend-color legend-round" style="background: #4CAF50;"></div>
+                    <span>Class</span>
                 </div>
-                <span>Composition</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-line" style="background: #9C27B0;">
-                    <div style="color: #9C27B0;">▶</div>
+                <div class="legend-item">
+                    <div class="legend-color legend-round" style="background: #FF9800;"></div>
+                    <span>Instance</span>
                 </div>
-                <span>Aggregation</span>
+                <div class="legend-item">
+                    <div class="legend-color legend-round" style="background: #757575;"></div>
+                    <span>External</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-round" style="background: #FDD835;"></div>
+                    <span>Method</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-rect" style="background: #FFF9C4; border-color: #FBC02D;"></div>
+                    <span>Layer</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-rect" style="background: #F8BBD0; border-color: #E91E63;"></div>
+                    <span>Refinement</span>
+                </div>
+            </div>
+            
+            <!-- Edge Types -->
+            <div class="legend-section">
+                <h4>Edges</h4>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #2196F3;"></div>
+                    <span>Composition</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line legend-dashed" style="border-color: #9C27B0;"></div>
+                    <span>Has Refinement</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #F44336;"></div>
+                    <span>Refined By</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line legend-dotted" style="border-color: #607D8B;"></div>
+                    <span>Has Method</span>
+                </div>
             </div>
         </div>
         <div id="node-info">
