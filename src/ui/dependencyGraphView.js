@@ -354,29 +354,54 @@ class DependencyGraphView {
     
     <div class="info-panel">
         <div class="legend">
-            <div class="legend-item">
-                <div class="legend-color" style="background: #4CAF50;"></div>
-                <span>Class</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #FF9800;"></div>
-                <span>Instance</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #757575;"></div>
-                <span>External</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-line" style="background: #2196F3;">
-                    <div style="color: #2196F3;">▶</div>
+            <!-- Node Types -->
+            <div class="legend-section">
+                <h4>Nodes</h4>
+                <div class="legend-item">
+                    <div class="legend-color legend-round" style="background: #4CAF50;"></div>
+                    <span>Class</span>
                 </div>
-                <span>Composition</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-line" style="background: #9C27B0;">
-                    <div style="color: #9C27B0;">▶</div>
+                <div class="legend-item">
+                    <div class="legend-color legend-round" style="background: #FF9800;"></div>
+                    <span>Instance</span>
                 </div>
-                <span>Aggregation</span>
+                <div class="legend-item">
+                    <div class="legend-color legend-round" style="background: #757575;"></div>
+                    <span>External</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-round" style="background: #FDD835;"></div>
+                    <span>Method</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-rect" style="background: #FFF9C4; border-color: #FBC02D;"></div>
+                    <span>Layer</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-rect" style="background: #F8BBD0; border-color: #E91E63;"></div>
+                    <span>Refinement</span>
+                </div>
+            </div>
+            
+            <!-- Edge Types -->
+            <div class="legend-section">
+                <h4>Edges</h4>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #2196F3;"></div>
+                    <span>Composition</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line legend-dashed" style="border-color: #9C27B0;"></div>
+                    <span>Has Refinement</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #F44336;"></div>
+                    <span>Refined By</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line legend-dotted" style="border-color: #607D8B;"></div>
+                    <span>Has Method</span>
+                </div>
             </div>
         </div>
         <div id="node-info">

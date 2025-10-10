@@ -4,62 +4,62 @@ const { BabelObjectDependencyDetector } = require('../parser/babelObjectDependen
 const { COPAnalysisResult } = require('./copAnalysisResult');
 
 /**
- * COPAnalyzer - 共通の解析フロー
+ * COPAnalyzer - Common analysis flow
  * 
- * すべてのCOP機能（Hover、TreeView、依存グラフ）の基盤となる統合解析器
+ * Unified analyzer that serves as the foundation for all COP features (Hover, TreeView, Dependency Graph)
  * 
- * 責務:
- * - 各種Detectorを統合して実行
- * - 解析結果を統一フォーマットで返す
- * - シンボルインデックスの構築
+ * Responsibilities:
+ * - Integrate and execute various Detectors
+ * - Return analysis results in unified format
+ * - Build symbol index
  */
 class COPAnalyzer {
     constructor(filePath) {
         this.filePath = filePath;
         
-        // 各種Detector
+        // Various Detectors
         this.layerDetector = new BabelLayerDetector();
         this.refinementDetector = new BabelRefinementDetector();
         this.dependencyDetector = new BabelObjectDependencyDetector();
     }
     
     /**
-     * コードを解析して統合結果を返す
-     * @param {string} code - 解析対象のコード
-     * @returns {Object} 統合解析結果
+     * Analyze code and return unified results
+     * @param {string} code - Code to analyze
+     * @returns {Object} Unified analysis results
      */
     analyze(code) {
-        // null/undefined対策
+        // Handle null/undefined
         if (!code) {
             return this.createEmptyResult();
         }
         
         try {
-            // 現在のファイルパスを各Detectorに設定
+            // Set current file path to each Detector
             this.layerDetector.setCurrentFile(this.filePath);
             this.refinementDetector.setCurrentFile(this.filePath);
             this.dependencyDetector.setCurrentFile(this.filePath);
             
-            // 1. 各種構文を検出
+            // 1. Detect various constructs
             const layers = this.layerDetector.detect(code);
             const refinements = this.refinementDetector.detect(code);
             const dependencies = this.dependencyDetector.detect(code);
             
-            // 2. COPAnalysisResultに統合
+            // 2. Integrate into COPAnalysisResult
             const result = new COPAnalysisResult();
             result.mergeLayerResults(layers);
-            result.mergeRefinementResults(refinements);  // ← ここで分類される
+            result.mergeRefinementResults(refinements);  // Classification happens here
             
-            // 3. Layerノードをdependenciesグラフにマージ
+            // 3. Merge Layer nodes into dependencies graph
             result.dependencies = this.mergeCOPIntoGraph(dependencies, layers, refinements);
             
             result.buildIndices();
             
-            // 4. 統合結果を返す
+            // 4. Return integrated result
             return result;
             
         } catch (error) {
-            // 構文エラーなどでも例外を投げない
+            // Do not throw exceptions even on syntax errors
             console.error(`[COPAnalyzer] Parse error in ${this.filePath}:`);
             console.error(`  ${error.message}`);
             if (error.loc) {
@@ -191,18 +191,18 @@ class COPAnalyzer {
     }
     
     /**
-     * シンボルインデックスを構築
-     * 位置ベースで高速検索できるように行番号でソート
+     * Build symbol index
+     * Sorted by line number for fast position-based search
      * 
-     * @param {Array} layers - Layer情報
-     * @param {Array} refinements - Refinement情報
-     * @param {Object} dependencies - 依存関係情報
-     * @returns {Array} ソート済みシンボルインデックス
+     * @param {Array} layers - Layer information
+     * @param {Array} refinements - Refinement information
+     * @param {Object} dependencies - Dependency information
+     * @returns {Array} Sorted symbol index
      */
     buildSymbolIndex(layers, refinements, dependencies) {
         const symbols = [];
         
-        // Layerをシンボルに追加
+        // Add layers to symbols
         if (layers && layers.length > 0) {
             layers.forEach(layer => {
                 symbols.push({
@@ -215,7 +215,7 @@ class COPAnalyzer {
             });
         }
         
-        // Refinementをシンボルに追加
+        // Add refinements to symbols
         if (refinements && refinements.length > 0) {
             refinements.forEach(refinement => {
                 symbols.push({
@@ -228,7 +228,7 @@ class COPAnalyzer {
             });
         }
         
-        // Dependencyのノードをシンボルに追加
+        // Add dependency nodes to symbols
         if (dependencies && dependencies.nodes) {
             dependencies.nodes.forEach(node => {
                 const nodeData = node.data;
@@ -244,15 +244,15 @@ class COPAnalyzer {
             });
         }
         
-        // 行番号でソート
+        // Sort by line number
         symbols.sort((a, b) => (a.line || 0) - (b.line || 0));
         
         return symbols;
     }
     
     /**
-     * 空の解析結果を生成
-     * @returns {Object} 空の解析結果
+     * Generate empty analysis result
+     * @returns {Object} Empty analysis result
      */
     createEmptyResult() {
         return new COPAnalysisResult();

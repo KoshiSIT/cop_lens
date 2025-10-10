@@ -4,13 +4,13 @@ const { BabelObjectDependencyDetector } = require('../parser/babelObjectDependen
 const fs = require('fs');
 
 /**
- * UnifiedProjectAnalyzer - プロジェクト全体の統合解析
+ * UnifiedProjectAnalyzer - Unified analysis for entire project
  * 
- * 責務:
- * - プロジェクト全体のファイルを収集
- * - 各ファイルをCOPAnalyzerで解析
- * - 依存グラフを構築
- * - GlobalCOPDataStoreに保存する形式で結果を返す
+ * Responsibilities:
+ * - Collect files from entire project
+ * - Analyze each file with COPAnalyzer
+ * - Build dependency graph
+ * - Return results in format suitable for GlobalCOPDataStore
  */
 class UnifiedProjectAnalyzer {
     constructor(projectRoot) {
@@ -19,13 +19,13 @@ class UnifiedProjectAnalyzer {
     }
 
     /**
-     * プロジェクト全体を解析
+     * Analyze entire project
      * @returns {Object} { fileResults: Map, dependencyGraph: Object }
      */
     async analyzeProject(store = null) {
         console.log(`[UnifiedAnalyzer] Analyzing project: ${this.projectRoot}`);
         
-        // Step 1: ファイル収集
+        // Step 1: Collect files
         const jsFiles = this.fileCollector.collectAllJavaScriptFiles();
         console.log(`[UnifiedAnalyzer] Found ${jsFiles.length} JavaScript files`);
         
@@ -33,7 +33,7 @@ class UnifiedProjectAnalyzer {
             return this.createEmptyResult();
         }
 
-        // Step 2: 各ファイルのCOP構文解析
+        // Step 2: Analyze COP constructs in each file
         const fileResults = new Map();
         const errors = [];
         let successCount = 0;
@@ -53,17 +53,17 @@ class UnifiedProjectAnalyzer {
             } catch (error) {
                 console.error(`[UnifiedAnalyzer] Error analyzing ${file}:`, error.message);
                 errors.push({ file, error: error.message });
-                // エラーでもスキップして続行
+                // Skip and continue even on error
             }
         }
         
-        // エラーサマリーをログ出力
+        // Log error summary
         if (errors.length > 0) {
             console.warn(`[UnifiedAnalyzer] ${errors.length} files failed to analyze`);
             console.warn(`[UnifiedAnalyzer] Successfully analyzed: ${successCount}/${jsFiles.length}`);
         }
 
-        // Step 3: 依存グラフの構築
+        // Step 3: Build dependency graph
         const dependencyGraph = await this.buildDependencyGraph(fileResults);
         
         // If store is provided, save dependency graph
@@ -80,21 +80,21 @@ class UnifiedProjectAnalyzer {
     }
 
     /**
-     * 依存グラフを構築
-     * @param {Map} fileResults - ファイルごとの解析結果
-     * @returns {Object} 統合された依存グラフ
+     * Build dependency graph
+     * @param {Map} fileResults - Analysis results per file
+     * @returns {Object} Integrated dependency graph
      */
     async buildDependencyGraph(fileResults) {
         const allNodes = [];
         const allEdges = [];
         
-        // 各ファイルの依存グラフをマージ
+        // Merge dependency graphs from each file
         for (const [filePath, result] of fileResults) {
             if (result.dependencies) {
-                // ノードを追加（重複チェック）
+                // Add nodes (with duplicate check)
                 if (result.dependencies.nodes) {
                     for (const node of result.dependencies.nodes) {
-                        // ファイルパスとIDの組み合わせで一意性を判定
+                        // Determine uniqueness by file path and ID combination
                         const uniqueId = `${filePath}::${node.data.id}`;
                         const exists = allNodes.some(n => {
                             const existingUniqueId = `${n.data.filePath}::${n.data.id}`;
@@ -102,7 +102,7 @@ class UnifiedProjectAnalyzer {
                         });
                         
                         if (!exists) {
-                            // ノードにファイル情報を追加
+                            // Add file information to node
                             const enhancedNode = {
                                 ...node,
                                 data: {
@@ -116,7 +116,7 @@ class UnifiedProjectAnalyzer {
                     }
                 }
                 
-                // エッジを追加（重複チェック）
+                // Add edges (with duplicate check)
                 if (result.dependencies.edges) {
                     for (const edge of result.dependencies.edges) {
                         const exists = allEdges.some(e => 
@@ -208,7 +208,7 @@ class UnifiedProjectAnalyzer {
             return !isDuplicate;
         });
 
-        // サマリーを計算
+        // Calculate summary
         const summary = {
             totalNodes: filteredNodes.length,
             totalEdges: updatedEdges.length,
@@ -226,7 +226,7 @@ class UnifiedProjectAnalyzer {
     }
 
     /**
-     * 空の結果を作成
+     * Create empty result
      */
     createEmptyResult() {
         return {

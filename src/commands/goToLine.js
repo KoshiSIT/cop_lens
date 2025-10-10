@@ -49,7 +49,7 @@ async function goToLine(lineNumberOrOptions) {
         vscode.TextEditorRevealType.InCenter,
     );
     
-    // ✨ ハイライト追加
+    // Add highlight decoration
     const highlightDecoration = vscode.window.createTextEditorDecorationType({
         backgroundColor: new vscode.ThemeColor('editor.findMatchHighlightBackground'),
         border: '2px solid',

@@ -2,10 +2,9 @@ const vscode = require("vscode");
 const { HoverProvider } = require("../features/hoverProvider");
 
 /**
- * COPHoverProviderAdapter - 既存のCOPHoverProviderを新しいHoverProviderに適合
+ * COPHoverProviderAdapter - Adapts existing COPHoverProvider to new HoverProvider
  * 
- * VSCodeのHoverProviderインターフェースを実装し、
- * 内部で新しいHoverProviderを使用する
+ * Implements VSCode's HoverProvider interface and uses the new HoverProvider internally
  */
 class COPHoverProviderAdapter {
     constructor(globalStore = null) {
@@ -15,8 +14,8 @@ class COPHoverProviderAdapter {
     }
 
     /**
-     * 解析結果を設定
-     * @param {Object} analysisResult - COPAnalyzerからの解析結果
+     * Set analysis result
+     * @param {Object} analysisResult - Analysis result from COPAnalyzer
      */
     setAnalysisResult(analysisResult) {
         this.analysisResult = analysisResult;
@@ -24,23 +23,23 @@ class COPHoverProviderAdapter {
     }
 
     /**
-     * VSCodeのHover情報を提供
-     * @param {vscode.TextDocument} document - ドキュメント
-     * @param {vscode.Position} position - カーソル位置
-     * @returns {vscode.Hover|null} Hover情報
+     * Provide VSCode hover information
+     * @param {vscode.TextDocument} document - Document
+     * @param {vscode.Position} position - Cursor position
+     * @returns {vscode.Hover|null} Hover information
      */
     provideHover(document, position) {
         if (!this.hoverProvider) {
             return null;
         }
 
-        // VSCodeのPositionを{line, character}形式に変換
+        // Convert VSCode Position to {line, character} format
         const pos = {
             line: position.line,
             character: position.character
         };
 
-        // globalStoreを使う場合はfilePathも渡す
+        // Pass filePath when using globalStore
         const filePath = document.fileName;
         const entity = this.hoverProvider.findEntityAt(pos, filePath);
         
@@ -61,11 +60,11 @@ class COPHoverProviderAdapter {
             return null;
         }
 
-        // Markdownコンテンツを作成
+        // Create Markdown content
         const markdown = new vscode.MarkdownString(hoverInfo.contents);
         markdown.isTrusted = true;
 
-        // VSCodeのHoverオブジェクトを返す
+        // Return VSCode Hover object
         return new vscode.Hover(markdown);
     }
 }

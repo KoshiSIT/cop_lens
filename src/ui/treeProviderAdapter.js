@@ -2,10 +2,9 @@ const vscode = require("vscode");
 const { TreeViewProvider } = require("../features/treeViewProvider");
 
 /**
- * COPTreeProviderAdapter - 既存のCOPTreeProviderを新しいTreeViewProviderに適合
+ * COPTreeProviderAdapter - Adapts existing COPTreeProvider to new TreeViewProvider
  * 
- * VSCodeのTreeDataProviderインターフェースを実装し、
- * 内部で新しいTreeViewProviderを使用する
+ * Implements VSCode's TreeDataProvider interface and uses the new TreeViewProvider internally
  */
 class COPTreeProviderAdapter {
     constructor(globalStore = null) {
@@ -18,9 +17,9 @@ class COPTreeProviderAdapter {
     }
 
     /**
-     * 解析結果を設定して更新
-     * @param {Object} analysisResult - COPAnalyzerからの解析結果
-     * @param {string} filePath - ファイルパス
+     * Set analysis result and update
+     * @param {Object} analysisResult - Analysis result from COPAnalyzer
+     * @param {string} filePath - File path
      */
     setAnalysisResult(analysisResult, filePath = null) {
         this.analysisResult = analysisResult;
@@ -30,11 +29,11 @@ class COPTreeProviderAdapter {
     }
 
     /**
-     * 旧形式のsetResultsメソッド（後方互換性のため）
-     * @param {Array} results - 旧形式の結果配列
+     * Legacy setResults method (for backward compatibility)
+     * @param {Array} results - Legacy format result array
      */
     setResults(results) {
-        // 空の配列の場合は何もしない
+        // Do nothing if empty array
         if (!results || results.length === 0) {
             this.analysisResult = null;
             this.treeViewProvider = null;
@@ -42,9 +41,9 @@ class COPTreeProviderAdapter {
             return;
         }
         
-        // 旧形式をそのまま使う場合（後方互換）
-        // この場合は内部的に旧ロジックを使う必要がある
-        // 実装はシンプルに、結果がないことを示す
+        // When using legacy format (backward compatibility)
+        // In this case, we need to use legacy logic internally
+        // Implementation is simple - indicate no results
         this.analysisResult = null;
         this.treeViewProvider = null;
         this._onDidChangeTreeData.fire();
@@ -53,7 +52,7 @@ class COPTreeProviderAdapter {
     getTreeItem(element) {
         if (!element) return null;
 
-        // TreeViewProviderのアイテムをVSCode TreeItemに変換
+        // Convert TreeViewProvider item to VSCode TreeItem
         const item = new vscode.TreeItem(
             element.label,
             vscode.TreeItemCollapsibleState.None
@@ -63,7 +62,7 @@ class COPTreeProviderAdapter {
         item.tooltip = element.tooltip;
         item.command = element.command;
 
-        // アイコンを設定
+        // Set icon
         if (element.iconType) {
             item.iconPath = new vscode.ThemeIcon(
                 element.iconType.icon,
@@ -75,17 +74,17 @@ class COPTreeProviderAdapter {
     }
 
     /**
-     * 子要素を取得
-     * @param {vscode.TreeItem} element - 親要素
-     * @returns {Array<Object>} 子要素の配列
+     * Get child elements
+     * @param {vscode.TreeItem} element - Parent element
+     * @returns {Array<Object>} Array of child elements
      */
     getChildren(element) {
         if (element) {
-            // 現在の実装では子要素なし
+            // No child elements in current implementation
             return [];
         }
 
-        // ルートレベルの要素を返す
+        // Return root level elements
         if (!this.treeViewProvider) {
             const noResultItem = {
                 label: "No COP constructs detected",

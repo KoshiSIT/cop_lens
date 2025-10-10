@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 /**
- * FileCollector - プロジェクト全体のファイル収集ユーティリティ
+ * FileCollector - Utility for collecting files across the project
  */
 class FileCollector {
     constructor(projectRoot) {
@@ -50,9 +50,9 @@ class FileCollector {
     }
 
     /**
-     * プロジェクト全体からJavaScriptファイルを再帰的に収集
-     * @param {Array<string>} additionalExcludes - 追加の除外パターン
-     * @returns {Array<string>} ファイルパスの配列
+     * Recursively collect JavaScript files from the entire project
+     * @param {Array<string>} additionalExcludes - Additional exclude patterns
+     * @returns {Array<string>} Array of file paths
      */
     collectAllJavaScriptFiles(additionalExcludes = []) {
         const excludePatterns = [...this.defaultExcludes, ...this.userExcludes, ...additionalExcludes];
@@ -64,7 +64,7 @@ class FileCollector {
     }
 
     /**
-     * 再帰的にディレクトリを走査
+     * Traverse directory recursively
      * @private
      */
     _traverse(dir, files, excludePatterns) {
@@ -72,7 +72,7 @@ class FileCollector {
             const entries = fs.readdirSync(dir);
             
             for (const entry of entries) {
-                // 除外パターンチェック
+                // Check exclude patterns
                 if (this._shouldExclude(entry, excludePatterns)) {
                     continue;
                 }
@@ -83,13 +83,13 @@ class FileCollector {
                     const stat = fs.statSync(fullPath);
                     
                     if (stat.isDirectory()) {
-                        // サブディレクトリを再帰的に走査
+                        // Recursively traverse subdirectory
                         this._traverse(fullPath, files, excludePatterns);
                     } else if (stat.isFile() && this._isJavaScriptFile(entry)) {
                         files.push(fullPath);
                     }
                 } catch (statError) {
-                    // ファイル/ディレクトリへのアクセスエラーは無視
+                    // Ignore file/directory access errors
                     continue;
                 }
             }
@@ -99,7 +99,7 @@ class FileCollector {
     }
 
     /**
-     * 除外すべきかチェック
+     * Check if should be excluded
      * @private
      */
     _shouldExclude(entry, excludePatterns) {
@@ -108,7 +108,7 @@ class FileCollector {
                 return true;
             }
             
-            // ワイルドカードパターン対応
+            // Support wildcard patterns
             if (pattern.includes('*')) {
                 const regex = new RegExp(pattern.replace(/\*/g, '.*'));
                 if (regex.test(entry)) {
@@ -120,7 +120,7 @@ class FileCollector {
     }
 
     /**
-     * JavaScriptファイルかチェック
+     * Check if file is JavaScript
      * @private
      */
     _isJavaScriptFile(filename) {
@@ -128,7 +128,7 @@ class FileCollector {
             return false;
         }
         
-        // テストファイルを除外
+        // Exclude test files
         if (filename.includes('.test.') || filename.includes('.spec.')) {
             return false;
         }
@@ -137,9 +137,9 @@ class FileCollector {
     }
 
     /**
-     * ディレクトリ内のファイルのみ収集（非再帰）
-     * @param {string} dir - ディレクトリパス
-     * @returns {Array<string>} ファイルパスの配列
+     * Collect only files in directory (non-recursive)
+     * @param {string} dir - Directory path
+     * @returns {Array<string>} Array of file paths
      */
     collectFilesInDirectory(dir) {
         const files = [];

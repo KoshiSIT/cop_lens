@@ -1,10 +1,10 @@
 /**
- * TreeViewProvider - TreeView機能の提供
+ * TreeViewProvider - Provides TreeView functionality
  * 
- * 責務:
- * - 解析結果からTreeView用のアイテムを生成
- * - 表示名、説明、アイコン、ツールチップの生成
- * - VSCode UIとの連携用データ構造を提供
+ * Responsibilities:
+ * - Generate TreeView items from analysis results
+ * - Generate display names, descriptions, icons, and tooltips
+ * - Provide data structures for VSCode UI integration
  */
 class TreeViewProvider {
     constructor(analysisResult, globalStore = null) {
@@ -13,8 +13,8 @@ class TreeViewProvider {
     }
 
     /**
-     * TreeView用のアイテムリストを構築
-     * @returns {Array} TreeItem相当のオブジェクト配列
+     * Build item list for TreeView
+     * @returns {Array} Array of TreeItem-equivalent objects
      */
     buildTreeItems() {
         if (!this.result || !this.result.symbolIndex || this.result.symbolIndex.length === 0) {
@@ -30,9 +30,9 @@ class TreeViewProvider {
     }
 
     /**
-     * 単一のTreeItemを生成
-     * @param {Object} entity - シンボルエンティティ
-     * @returns {Object} TreeItem相当のオブジェクト
+     * Create a single TreeItem
+     * @param {Object} entity - Symbol entity
+     * @returns {Object} TreeItem-equivalent object
      */
     createTreeItem(entity) {
         return {
@@ -51,9 +51,9 @@ class TreeViewProvider {
     }
 
     /**
-     * 表示名を取得
-     * @param {Object} entity - エンティティ
-     * @returns {string} 表示名
+     * Get display name
+     * @param {Object} entity - Entity
+     * @returns {string} Display name
      */
     getDisplayName(entity) {
         const { type, name, line, data } = entity;
@@ -73,7 +73,7 @@ class TreeViewProvider {
     }
 
     /**
-     * Refinement用の表示名を取得
+     * Get display name for Refinement
      */
     getRefinementDisplayName(data, line) {
         if (!data) return `Refinement (line ${line})`;
@@ -94,9 +94,9 @@ class TreeViewProvider {
     }
 
     /**
-     * 説明文を取得
-     * @param {Object} entity - エンティティ
-     * @returns {string} 説明文
+     * Get description
+     * @param {Object} entity - Entity
+     * @returns {string} Description
      */
     getDescription(entity) {
         const { type, data } = entity;
@@ -116,7 +116,7 @@ class TreeViewProvider {
     }
 
     /**
-     * Refinement用の説明文を取得
+     * Get description for Refinement
      */
     getRefinementDescription(data) {
         if (!data) return '';
@@ -145,9 +145,9 @@ class TreeViewProvider {
     }
 
     /**
-     * ツールチップを取得
-     * @param {Object} entity - エンティティ
-     * @returns {string} ツールチップ
+     * Get tooltip
+     * @param {Object} entity - Entity
+     * @returns {string} Tooltip
      */
     getTooltip(entity) {
         const { type, name, data } = entity;
@@ -167,7 +167,7 @@ class TreeViewProvider {
     }
 
     /**
-     * Layer用ツールチップ
+     * Tooltip for Layer
      */
     getLayerTooltip(name, data) {
         let tooltip = `Layer: ${name}`;
@@ -184,7 +184,7 @@ class TreeViewProvider {
     }
 
     /**
-     * Refinement用ツールチップ
+     * Tooltip for Refinement
      */
     getRefinementTooltip(data) {
         if (!data) return 'Refinement';
@@ -216,8 +216,8 @@ class TreeViewProvider {
     }
 
     /**
-     * アイコンタイプを取得（VSCode ThemeIconの種類を返す）
-     * @param {Object} entity - エンティティ
+     * Get icon type (returns VSCode ThemeIcon type)
+     * @param {Object} entity - Entity
      * @returns {Object} {icon: string, color: string}
      */
     getIconType(entity) {
@@ -246,7 +246,7 @@ class TreeViewProvider {
     }
 
     /**
-     * Refinement用アイコン
+     * Icon for Refinement
      */
     getRefinementIcon(data) {
         if (!data) return { icon: 'question', color: 'charts.gray' };

@@ -326,7 +326,7 @@ class GraphRenderer {
             {
                 selector: 'node[type="layer"]',
                 style: {
-                    'background-color': '#FFF9C4',  // 薄い黄色
+                    'background-color': '#FFF9C4',  // Light yellow
                     'label': 'data(label)',
                     'shape': 'rectangle',
                     'border-color': '#FBC02D',

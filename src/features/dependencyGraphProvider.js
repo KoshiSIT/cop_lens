@@ -1,10 +1,10 @@
 /**
- * DependencyGraphProvider - 依存グラフ機能の提供
+ * DependencyGraphProvider - Provides dependency graph functionality
  * 
- * 責務:
- * - 解析結果から依存グラフデータを構築
- * - 階層情報の計算
- * - WebView表示用のデータ提供
+ * Responsibilities:
+ * - Build dependency graph data from analysis results
+ * - Calculate hierarchy information
+ * - Provide data for WebView display
  */
 class DependencyGraphProvider {
     constructor(analysisResult, globalStore = null) {
@@ -13,8 +13,8 @@ class DependencyGraphProvider {
     }
 
     /**
-     * 依存グラフを構築
-     * @returns {Object} グラフデータ {nodes, edges, hierarchy, summary}
+     * Build dependency graph
+     * @returns {Object} Graph data {nodes, edges, hierarchy, summary}
      */
     buildGraph() {
         // Use globalStore if available
@@ -38,7 +38,7 @@ class DependencyGraphProvider {
 
         const { dependencies } = this.result;
         
-        // 階層情報を計算
+        // Calculate hierarchy information
         const hierarchy = this.calculateHierarchy(dependencies);
 
         return {
@@ -50,10 +50,10 @@ class DependencyGraphProvider {
     }
 
     /**
-     * 階層情報を計算
-     * 依存関係に基づいてノードの階層レベルを決定
-     * @param {Object} dependencies - 依存関係データ
-     * @returns {Map} ノードIDと階層レベルのマップ
+     * Calculate hierarchy information
+     * Determine node hierarchy levels based on dependencies
+     * @param {Object} dependencies - Dependency data
+     * @returns {Map} Map of node IDs to hierarchy levels
      */
     calculateHierarchy(dependencies) {
         const hierarchy = new Map();
@@ -63,7 +63,7 @@ class DependencyGraphProvider {
             return hierarchy;
         }
 
-        // 入次数を計算
+        // Calculate in-degree
         const inDegree = new Map();
         nodes.forEach(node => {
             inDegree.set(node.data.id, 0);
@@ -78,7 +78,7 @@ class DependencyGraphProvider {
             });
         }
 
-        // ルートノード（入次数0）を見つける
+        // Find root nodes (in-degree 0)
         const roots = [];
         for (const [nodeId, degree] of inDegree) {
             if (degree === 0) {
@@ -87,7 +87,7 @@ class DependencyGraphProvider {
             }
         }
 
-        // BFSで階層レベルを計算
+        // Calculate hierarchy levels with BFS
         if (roots.length > 0 && edges) {
             const queue = roots.map(id => ({ id, level: 0 }));
             const visited = new Set(roots);
@@ -95,7 +95,7 @@ class DependencyGraphProvider {
             while (queue.length > 0) {
                 const { id, level } = queue.shift();
 
-                // このノードから出ている依存関係を探す
+                // Find dependencies outgoing from this node
                 edges.forEach(edge => {
                     if (edge.data.source === id) {
                         const targetId = edge.data.target;
@@ -113,18 +113,18 @@ class DependencyGraphProvider {
     }
 
     /**
-     * サマリー情報を計算
-     * @param {Object} dependencies - 依存関係データ
-     * @returns {Object} サマリー
+     * Calculate summary information
+     * @param {Object} dependencies - Dependency data
+     * @returns {Object} Summary
      */
     calculateSummary(dependencies) {
         const nodes = dependencies.nodes || [];
         const edges = dependencies.edges || [];
 
-        // 既存のsummaryがあればそれを使い、不足分を追加
+        // Use existing summary if available, add missing parts
         const existingSummary = dependencies.summary || {};
         
-        // メソッド総数を計算（各クラスのmethodsMapから）
+        // Calculate total methods (from each class's methodsMap)
         let totalMethods = 0;
         nodes.forEach(node => {
             if (node.data.type === 'class' && node.data.methodsMap) {
@@ -143,8 +143,8 @@ class DependencyGraphProvider {
     }
 
     /**
-     * 空のグラフを生成
-     * @returns {Object} 空のグラフデータ
+     * Generate empty graph
+     * @returns {Object} Empty graph data
      */
     createEmptyGraph() {
         return {
@@ -163,8 +163,8 @@ class DependencyGraphProvider {
     }
 
     /**
-     * サマリー情報を取得
-     * @returns {Object} サマリー
+     * Get summary information
+     * @returns {Object} Summary
      */
     getSummary() {
         const graph = this.buildGraph();
@@ -172,8 +172,8 @@ class DependencyGraphProvider {
     }
 
     /**
-     * ノード一覧を取得
-     * @returns {Array} ノード配列
+     * Get list of nodes
+     * @returns {Array} Node array
      */
     getNodes() {
         if (!this.result || !this.result.dependencies) {
@@ -183,8 +183,8 @@ class DependencyGraphProvider {
     }
 
     /**
-     * エッジ一覧を取得
-     * @returns {Array} エッジ配列
+     * Get list of edges
+     * @returns {Array} Edge array
      */
     getEdges() {
         if (!this.result || !this.result.dependencies) {
@@ -194,8 +194,8 @@ class DependencyGraphProvider {
     }
 
     /**
-     * 階層情報を取得
-     * @returns {Map} 階層情報
+     * Get hierarchy information
+     * @returns {Map} Hierarchy information
      */
     getHierarchy() {
         const graph = this.buildGraph();

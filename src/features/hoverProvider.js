@@ -1,10 +1,10 @@
 /**
- * HoverProvider - Hover機能の提供
+ * HoverProvider - Provides hover functionality
  * 
- * 責務:
- * - カーソル位置からエンティティを検索
- * - Hover表示用のコンテンツ生成
- * - ジャンプ可能なリンクの生成
+ * Responsibilities:
+ * - Search for entity at cursor position
+ * - Generate content for hover display
+ * - Generate jumpable links
  */
 class HoverProvider {
     constructor(analysisResult, globalStore = null) {
@@ -13,9 +13,9 @@ class HoverProvider {
     }
 
     /**
-     * 指定位置のHover情報を提供
+     * Provide hover information at specified position
      * @param {Object} position - {line, character}
-     * @returns {Object|null} Hover情報 or null
+     * @returns {Object|null} Hover information or null
      */
     provideHover(position) {
         const entity = this.findEntityAt(position);
@@ -35,9 +35,9 @@ class HoverProvider {
     }
 
     /**
-     * 指定位置のエンティティを検索
+     * Search for entity at specified position
      * @param {Object} position - {line, character}
-     * @returns {Object|null} エンティティ or null
+     * @returns {Object|null} Entity or null
      */
     findEntityAt(position, filePath = null) {
         // Use globalStore if available
@@ -50,24 +50,24 @@ class HoverProvider {
             return null;
         }
 
-        // symbolIndexは行番号でソート済み
-        // 二分探索で効率的に検索
-        const targetLine = position.line + 1; // VSCodeは0始まり、ASTは1始まり
+        // symbolIndex is sorted by line number
+        // Efficiently search using binary search
+        const targetLine = position.line + 1; // VSCode is 0-indexed, AST is 1-indexed
         return this.binarySearchSymbol(this.result.symbolIndex, targetLine);
     }
 
     /**
-     * 二分探索でシンボルを検索（高速化）
-     * @param {Array} symbols - ソート済みシンボル配列
-     * @param {number} targetLine - 検索対象の行番号
-     * @returns {Object|null} 見つかったシンボル or null
+     * Search for symbol using binary search (optimized)
+     * @param {Array} symbols - Sorted symbol array
+     * @param {number} targetLine - Target line number for search
+     * @returns {Object|null} Found symbol or null
      */
     binarySearchSymbol(symbols, targetLine) {
         if (!symbols || symbols.length === 0) {
             return null;
         }
 
-        // まず完全一致を探す（二分探索）
+        // First search for exact match (binary search)
         let left = 0;
         let right = symbols.length - 1;
         
@@ -84,8 +84,8 @@ class HoverProvider {
             }
         }
         
-        // 完全一致がない場合、範囲チェック
-        // targetLineを含む範囲を持つシンボルを探す
+        // If no exact match, check range
+        // Search for symbol with range containing targetLine
         for (const symbol of symbols) {
             if (symbol.range) {
                 const { start, end } = symbol.range;
@@ -99,9 +99,9 @@ class HoverProvider {
     }
 
     /**
-     * Hover表示用コンテンツを生成
-     * @param {Object} entity - エンティティ
-     * @returns {string|null} Markdownコンテンツ or null
+     * Generate content for hover display
+     * @param {Object} entity - Entity
+     * @returns {string|null} Markdown content or null
      */
     generateHoverContent(entity) {
         if (!entity) {
@@ -123,7 +123,7 @@ class HoverProvider {
     }
 
     /**
-     * Layer用Hoverコンテンツ（ジャンプリンク付き）
+     * Hover content for Layer (with jump links)
      */
     generateLayerHover(entity) {
         const { name, data } = entity;
@@ -219,7 +219,7 @@ class HoverProvider {
         // --- Refinements Section ---
         const refinements = this.findRelatedRefinements(name);
         if (refinements.length > 0) {
-            // ターゲットごとにグループ化（Base別に分類）
+            // Group by target (classified by Base)
             const refinementsByTarget = new Map();
             
             refinements.forEach(ref => {
@@ -241,23 +241,23 @@ class HoverProvider {
             lines.push('---');
             lines.push('');
             
-            // 各ターゲットメソッドごとに表示（Base と Refinement を同列に）
+            // Display for each target method (Base and Refinement on same level)
             for (const [key, group] of refinementsByTarget) {
                 const { targetClassName, methodName, refinements: refs } = group;
                 
-                // クラス情報を取得
+                // Get class information
                 const classInfo = this.findClassByName(targetClassName);
                 
-                // --- Base Section (文脈に依存しない元の実装) ---
+                // --- Base Section (original implementation independent of context) ---
                 lines.push(`### 📦 Base: \`${targetClassName}.${methodName}()\``);
                 lines.push('');
                 
-                // クラスへのジャンプリンク
+                // Jump link to class
                 if (classInfo) {
                     const classLink = this.makeJumpLink(classInfo.line, classInfo.file);
                     lines.push(`**Class:** \`${targetClassName}\` ${classLink}`);
                     
-                    // メソッドへのジャンプリンク
+                    // Jump link to method
                     if (classInfo.methodsMap && classInfo.methodsMap[methodName]) {
                         const methodInfo = classInfo.methodsMap[methodName];
                         const methodLink = this.makeJumpLink(methodInfo.line, methodInfo.file);
@@ -273,7 +273,7 @@ class HoverProvider {
                 lines.push('---');
                 lines.push('');
                 
-                // --- Refinement Section (文脈依存の動作) ---
+                // --- Refinement Section (context-dependent behavior) ---
                 lines.push(`### ✨ Refinement: \`${targetClassName}.${methodName}()\``);
                 lines.push('');
                 lines.push(`**Context-dependent behaviors (${refs.length}):**`);
@@ -292,13 +292,13 @@ class HoverProvider {
     }
 
     /**
-     * Refinement用Hoverコンテンツ（ジャンプリンク付き）
+     * Hover content for Refinement (with jump links)
      */
     generateRefinementHover(entity) {
         const { name, data } = entity;
         const lines = [];
         
-        // Refinementのタイプに応じてアイコンを選択
+        // Select icon based on Refinement type
         let icon = '✨';
         let title = 'Refinement';
         
@@ -319,7 +319,7 @@ class HoverProvider {
         lines.push(`### ${icon} ${title}`);
         lines.push('');
 
-        // Layer情報（ジャンプリンク付き）
+        // Layer information (with jump link)
         if (data.layerObject) {
             const layerEntity = this.findLayerByName(data.layerObject);
             if (layerEntity) {
@@ -330,7 +330,7 @@ class HoverProvider {
             lines.push('');
         }
 
-        // ターゲット情報（クラス定義へのジャンプリンク付き）
+        // Target information (with jump link to class definition)
         const targetClassName = data.targetObject || data.targetClass;
         if (targetClassName) {
             const classInfo = this.findClassByName(targetClassName);
@@ -339,7 +339,7 @@ class HoverProvider {
                 lines.push(`**Target Class:** \`${targetClassName}\` ${jumpLink}`);
                 lines.push('');
                 
-                // メソッド情報（メソッド定義へのジャンプリンク付き）
+                // Method information (with jump link to method definition)
                 if (data.methodName && classInfo.methodsMap && classInfo.methodsMap[data.methodName]) {
                     const methodInfo = classInfo.methodsMap[data.methodName];
                     const methodJumpLink = this.makeJumpLink(methodInfo.line, methodInfo.file);
@@ -374,7 +374,7 @@ class HoverProvider {
     }
 
     /**
-     * Class用Hoverコンテンツ
+     * Hover content for Class
      */
     generateClassHover(entity) {
         const { name } = entity;
@@ -382,7 +382,7 @@ class HoverProvider {
     }
 
     /**
-     * デフォルトHoverコンテンツ
+     * Default hover content
      */
     generateDefaultHover(entity) {
         const { name, type } = entity;
@@ -390,9 +390,9 @@ class HoverProvider {
     }
 
     /**
-     * 指定Layerに関連するRefinementを検索
-     * @param {string} layerName - Layer instance名
-     * @returns {Array} 関連するRefinement配列
+     * Search for Refinements related to specified Layer
+     * @param {string} layerName - Layer instance name
+     * @returns {Array} Array of related Refinements
      */
     findRelatedRefinements(layerName) {
         const refinements = this.result ? this.result.getRefinements() : [];
@@ -402,9 +402,9 @@ class HoverProvider {
     }
 
     /**
-     * 指定Layerに関連するCOP操作を検索
-     * @param {string} layerName - Layer instance名
-     * @returns {Array} 関連するCOP操作配列
+     * Search for COP operations related to specified Layer
+     * @param {string} layerName - Layer instance name
+     * @returns {Array} Array of related COP operations
      */
     findRelatedCOPOperations(layerName) {
         const copOperations = this.result ? this.result.getCOPOperations() : [];
@@ -414,8 +414,8 @@ class HoverProvider {
     }
 
     /**
-     * 名前でLayerを検索
-     * @param {string} layerName - Layer名
+     * Search for Layer by name
+     * @param {string} layerName - Layer name
      * @returns {Object|null} Layer entity or null
      */
     findLayerByName(layerName) {
@@ -424,12 +424,12 @@ class HoverProvider {
     }
 
     /**
-     * 名前でクラスを検索（GlobalStoreまたはローカル結果から）
-     * @param {string} className - クラス名
-     * @returns {Object|null} クラス情報 or null
+     * Search for class by name (from GlobalStore or local results)
+     * @param {string} className - Class name
+     * @returns {Object|null} Class information or null
      */
     findClassByName(className) {
-        // GlobalStoreから検索
+        // Search from GlobalStore
         if (this.globalStore && this.globalStore.dependencyGraph) {
             const graph = this.globalStore.dependencyGraph;
             if (graph.nodes) {
@@ -442,7 +442,7 @@ class HoverProvider {
             }
         }
         
-        // ローカル結果から検索
+        // Search from local results
         if (this.result && this.result.dependencies && this.result.dependencies.nodes) {
             const classNode = this.result.dependencies.nodes.find(n =>
                 n.data.type === 'class' && n.data.id === className
@@ -456,11 +456,11 @@ class HoverProvider {
     }
 
     /**
-     * ジャンプリンク用のMarkdownを生成
-     * @param {number} line - 行番号
-     * @param {string} filePath - ファイルパス (オプション)
-     * @param {string} label - リンクラベル (デフォルト: "↗")
-     * @returns {string} Markdownリンク
+     * Generate Markdown for jump link
+     * @param {number} line - Line number
+     * @param {string} filePath - File path (optional)
+     * @param {string} label - Link label (default: "↗")
+     * @returns {string} Markdown link
      */
     makeJumpLink(line, filePath = null, label = "↗") {
         const args = filePath ? { line, file: filePath } : line;

@@ -1,57 +1,57 @@
 /**
- * GlobalCOPDataStore - プロジェクト全体のCOP情報を管理
+ * GlobalCOPDataStore - Manages COP information for entire project
  * 
- * 責務:
- * - プロジェクト全体の解析結果を保持
- * - ファイル保存/更新時に増分更新
- * - 各機能がデータを取り出すインターフェースを提供
+ * Responsibilities:
+ * - Store analysis results for entire project
+ * - Incrementally update on file save/update
+ * - Provide interface for features to retrieve data
  */
 class GlobalCOPDataStore {
     constructor() {
-        // ファイルパスごとの解析結果
+        // Analysis results per file path
         this.fileAnalysisResults = new Map(); // filePath -> COPAnalyzer result
         
-        // 統合インデックス（全ファイルから検索可能）
-        this.globalSymbolIndex = []; // すべてのシンボル（ソート済み）
+        // Unified index (searchable across all files)
+        this.globalSymbolIndex = []; // All symbols (sorted)
         
-        // プロジェクトルート
+        // Project root
         this.projectRoot = null;
         
-        // 依存グラフ（プロジェクト全体）
+        // Dependency graph (entire project)
         this.dependencyGraph = null;
     }
 
     /**
-     * プロジェクトルートを設定
+     * Set project root
      */
     setProjectRoot(projectRoot) {
         this.projectRoot = projectRoot;
     }
 
     /**
-     * プロジェクトが変更されたかチェック
-     * @param {string} newProjectRoot - 新しいプロジェクトルート
-     * @returns {boolean} プロジェクトが変更された場合true
+     * Check if project has changed
+     * @param {string} newProjectRoot - New project root
+     * @returns {boolean} true if project has changed
      */
     hasProjectChanged(newProjectRoot) {
         return this.projectRoot !== null && this.projectRoot !== newProjectRoot;
     }
 
     /**
-     * ストアをクリア（新しいプロジェクトに切り替わったとき）
+     * Clear store (when switching to new project)
      */
     clear() {
         console.log('[GlobalStore] Clearing all data for new project');
         this.fileAnalysisResults.clear();
         this.globalSymbolIndex = [];
         this.dependencyGraph = null;
-        // projectRootはクリアしない（次のsetProjectRootで上書きされる）
+        // Do not clear projectRoot (will be overwritten by next setProjectRoot)
     }
 
     /**
-     * ファイルの解析結果を追加/更新
-     * @param {string} filePath - ファイルパス
-     * @param {Object} analysisResult - COPAnalyzerからの解析結果
+     * Add/update file analysis result
+     * @param {string} filePath - File path
+     * @param {Object} analysisResult - Analysis result from COPAnalyzer
      */
     updateFile(filePath, analysisResult) {
         this.fileAnalysisResults.set(filePath, analysisResult);
@@ -59,8 +59,8 @@ class GlobalCOPDataStore {
     }
 
     /**
-     * ファイルの解析結果を削除
-     * @param {string} filePath - ファイルパス
+     * Delete file analysis result
+     * @param {string} filePath - File path
      */
     removeFile(filePath) {
         this.fileAnalysisResults.delete(filePath);
@@ -68,15 +68,15 @@ class GlobalCOPDataStore {
     }
 
     /**
-     * すべてのインデックスを再構築
+     * Rebuild all indices
      */
     rebuildIndices() {
-        // グローバルシンボルインデックスを再構築
+        // Rebuild global symbol index
         this.globalSymbolIndex = [];
         
         for (const [filePath, result] of this.fileAnalysisResults) {
             if (result.symbolIndex) {
-                // 各シンボルにファイル情報を追加
+                // Add file information to each symbol
                 result.symbolIndex.forEach(symbol => {
                     this.globalSymbolIndex.push({
                         ...symbol,
@@ -87,7 +87,7 @@ class GlobalCOPDataStore {
             }
         }
         
-        // 行番号でソート（同じファイル内で）
+        // Sort by line number (within same file)
         this.globalSymbolIndex.sort((a, b) => {
             if (a.filePath !== b.filePath) {
                 return a.filePath.localeCompare(b.filePath);
@@ -97,18 +97,18 @@ class GlobalCOPDataStore {
     }
 
     /**
-     * 依存グラフを更新
-     * @param {Object} dependencyGraph - ProjectAnalyzerからの依存グラフ
+     * Update dependency graph
+     * @param {Object} dependencyGraph - Dependency graph from ProjectAnalyzer
      */
     setDependencyGraph(dependencyGraph) {
         this.dependencyGraph = dependencyGraph;
     }
 
     /**
-     * 指定位置のエンティティを検索
-     * @param {string} filePath - ファイルパス
+     * Search for entity at specified position
+     * @param {string} filePath - File path
      * @param {Object} position - {line, character}
-     * @returns {Object|null} エンティティ
+     * @returns {Object|null} Entity
      */
     findEntityAt(filePath, position) {
         const result = this.fileAnalysisResults.get(filePath);
@@ -116,22 +116,22 @@ class GlobalCOPDataStore {
             return null;
         }
 
-        const targetLine = position.line + 1; // VSCodeは0始まり、ASTは1始まり
+        const targetLine = position.line + 1; // VSCode is 0-indexed, AST is 1-indexed
         return this.binarySearchSymbol(result.symbolIndex, targetLine);
     }
 
     /**
-     * 二分探索でシンボルを検索（高速化）
-     * @param {Array} symbols - ソート済みシンボル配列
-     * @param {number} targetLine - 検索対象の行番号
-     * @returns {Object|null} 見つかったシンボル or null
+     * Search for symbol using binary search (optimized)
+     * @param {Array} symbols - Sorted symbol array
+     * @param {number} targetLine - Target line number for search
+     * @returns {Object|null} Found symbol or null
      */
     binarySearchSymbol(symbols, targetLine) {
         if (!symbols || symbols.length === 0) {
             return null;
         }
 
-        // まず完全一致を探す（二分探索）
+        // First search for exact match (binary search)
         let left = 0;
         let right = symbols.length - 1;
         
@@ -148,8 +148,8 @@ class GlobalCOPDataStore {
             }
         }
         
-        // 完全一致がない場合、範囲チェック
-        // targetLineを含む範囲を持つシンボルを探す
+        // If no exact match, check range
+        // Search for symbol with range containing targetLine
         for (const symbol of symbols) {
             if (symbol.range) {
                 const { start, end } = symbol.range;
@@ -163,9 +163,9 @@ class GlobalCOPDataStore {
     }
 
     /**
-     * 指定ファイルのすべてのエンティティを取得
-     * @param {string} filePath - ファイルパス
-     * @returns {Array} エンティティ配列
+     * Get all Entities in specified file
+     * @param {string} filePath - File path
+     * @returns {Array} Array of Entities
      */
     getEntitiesForFile(filePath) {
         const result = this.fileAnalysisResults.get(filePath);
@@ -176,17 +176,17 @@ class GlobalCOPDataStore {
     }
 
     /**
-     * 指定ファイルの解析結果を取得
-     * @param {string} filePath - ファイルパス
-     * @returns {Object|null} 解析結果
+     * Get analysis result for specified file
+     * @param {string} filePath - File path
+     * @returns {Object|null} Analysis result
      */
     getFileAnalysis(filePath) {
         return this.fileAnalysisResults.get(filePath) || null;
     }
 
     /**
-     * 依存グラフを取得
-     * @returns {Object|null} 依存グラフ
+     * Get dependency graph
+     * @returns {Object|null} Dependency graph
      */
     getDependencyGraph() {
         // If project-wide graph exists, return it
@@ -245,8 +245,8 @@ class GlobalCOPDataStore {
     }
 
     /**
-     * すべてのLayer定義を取得（プロジェクト全体）
-     * @returns {Array} Layer配列
+     * Get all Layer definitions (entire project)
+     * @returns {Array} Array of Layers
      */
     getAllLayers() {
         const layers = [];
@@ -264,8 +264,8 @@ class GlobalCOPDataStore {
     }
 
     /**
-     * すべてのRefinement定義を取得（プロジェクト全体）
-     * @returns {Array} Refinement配列
+     * Get all Refinement definitions (entire project)
+     * @returns {Array} Array of Refinements
      */
     getAllRefinements() {
         const refinements = [];
@@ -283,9 +283,9 @@ class GlobalCOPDataStore {
     }
 
     /**
-     * 名前でLayerを検索（プロジェクト全体）
-     * @param {string} layerName - Layer名
-     * @returns {Object|null} Layer定義
+     * Search for Layer by name (entire project)
+     * @param {string} layerName - Layer name
+     * @returns {Object|null} Layer definition
      */
     findLayerByName(layerName) {
         const layers = this.getAllLayers();
@@ -293,8 +293,8 @@ class GlobalCOPDataStore {
     }
 
     /**
-     * 統計情報を取得
-     * @returns {Object} 統計情報
+     * Get statistics
+     * @returns {Object} Statistics
      */
     getStatistics() {
         let totalLayers = 0;
@@ -320,7 +320,7 @@ class GlobalCOPDataStore {
     }
 
     /**
-     * ストアをクリア
+     * Clear store
      */
     clear() {
         this.fileAnalysisResults.clear();

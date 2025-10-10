@@ -8,7 +8,7 @@ const { BabelBaseDetector } = require("./babelBaseDetector");
 class BabelLayerDetector extends BabelBaseDetector {
     constructor() {
         super();
-        // インスタンス追跡用のマップ（detect()ごとにクリアされる）
+        // Map for tracking instances (cleared on each detect())
         this.layerInstances = null;
     }
     
@@ -16,7 +16,7 @@ class BabelLayerDetector extends BabelBaseDetector {
      * Override detect to initialize layerInstances
      */
     detect(code) {
-        // 新しい検出のたびにマップを初期化
+        // Initialize map for each new detection
         this.layerInstances = new Map();
         return super.detect(code);
     }
@@ -81,7 +81,7 @@ class BabelLayerDetector extends BabelBaseDetector {
                     const instanceName = left.object.name;
                     const propertyName = left.property.name;
                     
-                    // このインスタンスがLayerかチェック
+                    // Check if this instance is a Layer
                     if (this.layerInstances.has(instanceName)) {
                         this.addPropertyToInstance(
                             instanceName, 
@@ -93,10 +93,10 @@ class BabelLayerDetector extends BabelBaseDetector {
                 }
             },
 
-            // プログラム終了時に結果を統合
+            // Integrate results at program end
             Program: {
                 exit: () => {
-                    // すべてのLayerインスタンス情報を結果に追加
+                    // Add all Layer instance information to results
                     for (const [name, instance] of this.layerInstances) {
                         results.push(this.buildLayerResult(name, instance));
                     }
@@ -106,7 +106,7 @@ class BabelLayerDetector extends BabelBaseDetector {
     }
 
     /**
-     * Layerインスタンスを登録
+     * Register Layer instance
      * @param {Object} path - Babel path object
      */
     registerLayerInstance(path) {
@@ -134,11 +134,11 @@ class BabelLayerDetector extends BabelBaseDetector {
     }
 
     /**
-     * インスタンスにプロパティを追加
-     * @param {string} instanceName - インスタンス名
-     * @param {string} propertyName - プロパティ名
-     * @param {Object} valueNode - 値のASTノード
-     * @param {Object} assignmentNode - 代入文のASTノード
+     * Add property to instance
+     * @param {string} instanceName - Instance name
+     * @param {string} propertyName - Property name
+     * @param {Object} valueNode - Value AST node
+     * @param {Object} assignmentNode - Assignment statement AST node
      */
     addPropertyToInstance(instanceName, propertyName, valueNode, assignmentNode) {
         const instance = this.layerInstances.get(instanceName);
@@ -146,7 +146,7 @@ class BabelLayerDetector extends BabelBaseDetector {
             return;
         }
 
-        // condition, onEnter, onExitのみを対象
+        // Only target condition, onEnter, onExit
         if (!['condition', 'onEnter', 'onExit'].includes(propertyName)) {
             return;
         }
@@ -159,11 +159,11 @@ class BabelLayerDetector extends BabelBaseDetector {
     }
 
     /**
-     * プロパティ値を抽出
-     * @param {string} propertyName - プロパティ名
-     * @param {Object} valueNode - 値のASTノード
-     * @param {Object} assignmentNode - 代入文のASTノード
-     * @returns {Object|null} プロパティ情報
+     * Extract property value
+     * @param {string} propertyName - Property name
+     * @param {Object} valueNode - Value AST node
+     * @param {Object} assignmentNode - Assignment statement AST node
+     * @returns {Object|null} Property information
      */
     extractPropertyValue(propertyName, valueNode, assignmentNode) {
         const baseInfo = this.getNodeInfo(assignmentNode);
@@ -178,10 +178,10 @@ class BabelLayerDetector extends BabelBaseDetector {
     }
 
     /**
-     * condition値を抽出
-     * @param {Object} valueNode - 値のASTノード
-     * @param {Object} baseInfo - 基本位置情報
-     * @returns {Object|null} condition情報
+     * Extract condition value
+     * @param {Object} valueNode - Value AST node
+     * @param {Object} baseInfo - Base location info
+     * @returns {Object|null} Condition information
      */
     extractConditionValue(valueNode, baseInfo) {
         // new SignalComp("expression")
@@ -216,10 +216,10 @@ class BabelLayerDetector extends BabelBaseDetector {
     }
 
     /**
-     * callback値を抽出
-     * @param {Object} valueNode - 値のASTノード
-     * @param {Object} baseInfo - 基本位置情報
-     * @returns {Object|null} callback情報
+     * Extract callback value
+     * @param {Object} valueNode - Value AST node
+     * @param {Object} baseInfo - Base location info
+     * @returns {Object|null} Callback information
      */
     extractCallbackValue(valueNode, baseInfo) {
         // function() { ... } or () => { ... }
@@ -233,7 +233,7 @@ class BabelLayerDetector extends BabelBaseDetector {
             };
         }
 
-        // Identifier (関数参照)
+        // Identifier (function reference)
         if (valueNode.type === 'Identifier') {
             return {
                 type: 'function_reference',
@@ -246,10 +246,10 @@ class BabelLayerDetector extends BabelBaseDetector {
     }
 
     /**
-     * Layer結果を構築
-     * @param {string} name - インスタンス名
-     * @param {Object} instance - インスタンス情報
-     * @returns {Object} Layer結果
+     * Build Layer result
+     * @param {string} name - Instance name
+     * @param {Object} instance - Instance information
+     * @returns {Object} Layer result
      */
     buildLayerResult(name, instance) {
         const result = {
@@ -260,7 +260,7 @@ class BabelLayerDetector extends BabelBaseDetector {
             ...instance.declaration
         };
 
-        // conditionプロパティ
+        // condition property
         if (instance.properties.condition) {
             const cond = instance.properties.condition;
             result.condition = cond.expression;
@@ -271,12 +271,12 @@ class BabelLayerDetector extends BabelBaseDetector {
             result.conditionType = 'none';
         }
 
-        // onEnterプロパティ
+        // onEnter property
         if (instance.properties.onEnter) {
             result.onEnter = instance.properties.onEnter;
         }
 
-        // onExitプロパティ
+        // onExit property
         if (instance.properties.onExit) {
             result.onExit = instance.properties.onExit;
         }

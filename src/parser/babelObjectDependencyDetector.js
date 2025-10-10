@@ -374,7 +374,7 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
         
         // Add class nodes
         for (const [className, classInfo] of this.classes) {
-            // メソッド情報をマップ化
+            // Convert methods to a map
             const methodsMap = {};
             classInfo.methods.forEach(method => {
                 methodsMap[method.name] = {
@@ -393,7 +393,7 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
                     line: classInfo.line,
                     description: classInfo.description,
                     properties: classInfo.properties.length,
-                    methodsMap: methodsMap  // メソッド詳細情報（個数はObject.keys(methodsMap).lengthで取得可能）
+                    methodsMap: methodsMap  // Method details (count via Object.keys(methodsMap).length)
                 }
             });
         }
