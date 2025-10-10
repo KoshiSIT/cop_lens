@@ -63,3 +63,40 @@ You can author your README using Visual Studio Code.  Here are some useful edito
 * [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
 
 **Enjoy!**
+
+---
+
+## Development
+
+### Project Structure
+
+See [docs/PROJECT_RULES.md](docs/PROJECT_RULES.md) for detailed project organization rules.
+
+```
+cop-lens/
+├── src/           # Source code
+├── test/          # Tests
+│   ├── unit/      # Unit tests (*.test.js)
+│   ├── debug/     # Debug scripts
+│   └── output/    # Test output
+├── examples/      # Sample projects
+└── docs/          # Documentation
+```
+
+### Running Tests
+
+```bash
+npm test                    # Run all tests
+npm run test:unit          # Run unit tests only
+npm run test:integration   # Run integration tests only
+```
+
+### Debugging
+
+Debug scripts: `test/debug/`
+
+```bash
+node test/debug/debug-xxx.js
+```
+
+**Important**: Keep project root clean! See [PROJECT_RULES.md](docs/PROJECT_RULES.md).

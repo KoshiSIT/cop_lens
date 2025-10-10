@@ -5,8 +5,16 @@ node_modules
 
 # Test scripts (manual testing only, not committed)
 test/manual/
+test/debug/*.js
+test/output/*.html
+test/output/*.json
+test/output/*.log
 
 # Dependency Analysis Output (keep analysis tools but ignore generated files)
 analysis/**/dependency-*.svg
 analysis/**/dependency-*.html
 analysis/**/*-dependencies.svg
+
+# Temporary files
+*.tmp
+*.temp
