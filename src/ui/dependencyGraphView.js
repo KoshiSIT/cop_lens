@@ -337,6 +337,104 @@ class DependencyGraphView {
             font-size: 11px;
             cursor: pointer;
         }
+        
+        /* Expanded node detail panel */
+        .node-detail-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--vscode-editor-background);
+            border: 2px solid var(--vscode-focusBorder);
+            border-radius: 8px;
+            padding: 16px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: none;
+        }
+        
+        .node-detail-panel.visible {
+            display: block;
+        }
+        
+        .node-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+        
+        .node-detail-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--vscode-editor-foreground);
+        }
+        
+        .node-detail-close {
+            background: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: none;
+            border-radius: 3px;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .node-detail-close:hover {
+            background: var(--vscode-button-secondaryHoverBackground);
+        }
+        
+        .node-detail-section {
+            margin-bottom: 16px;
+        }
+        
+        .node-detail-section-title {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--vscode-textLink-foreground);
+        }
+        
+        .node-detail-content {
+            font-size: 12px;
+            line-height: 1.5;
+            font-family: var(--vscode-editor-font-family);
+        }
+        
+        .method-item {
+            padding: 6px 8px;
+            margin: 4px 0;
+            background-color: var(--vscode-textBlockQuote-background);
+            border-left: 3px solid var(--vscode-textLink-foreground);
+            border-radius: 2px;
+            cursor: pointer;
+        }
+        
+        .method-item:hover {
+            background-color: var(--vscode-list-hoverBackground);
+        }
+        
+        .method-name {
+            font-weight: bold;
+            color: var(--vscode-symbolIcon-functionForeground);
+        }
+        
+        .method-params {
+            color: var(--vscode-descriptionForeground);
+            font-style: italic;
+        }
+        
+        .property-item {
+            padding: 4px 8px;
+            margin: 2px 0;
+            background-color: var(--vscode-textBlockQuote-background);
+            border-radius: 2px;
+        }
     </style>
 </head>
 <body>
@@ -351,6 +449,15 @@ class DependencyGraphView {
     </div>
     
     <div id="cy"></div>
+    
+    <!-- Node Detail Panel (hidden by default) -->
+    <div id="node-detail-panel" class="node-detail-panel">
+        <div class="node-detail-header">
+            <div class="node-detail-title" id="detail-title">Node Details</div>
+            <button class="node-detail-close" id="close-detail">✕ Close</button>
+        </div>
+        <div id="detail-content"></div>
+    </div>
     
     <div class="info-panel">
         <div class="legend">
@@ -502,42 +609,173 @@ class DependencyGraphView {
                 console.log('- After fit - zoom:', cy.zoom(), 'center:', cy.center());
             }, 500);
 
-        // Enhanced node click handler with VSCode integration
+        // Function to show node detail panel (define before use)
+        function showNodeDetail(data) {
+            try {
+                const panel = document.getElementById('node-detail-panel');
+                const title = document.getElementById('detail-title');
+                const content = document.getElementById('detail-content');
+                
+                if (!panel || !title || !content) {
+                    console.error('Detail panel elements not found');
+                    return;
+                }
+                
+                // Set title
+                title.textContent = \`\${data.name} (\${data.type})\`;
+                
+                // Build content based on node type
+                let html = '';
+                
+                // Basic info section
+                html += '<div class="node-detail-section">';
+                html += '<div class="node-detail-section-title">📋 Basic Information</div>';
+                html += '<div class="node-detail-content">';
+                html += \`<div><strong>File:</strong> \${data.file}</div>\`;
+                html += \`<div><strong>Line:</strong> \${data.line}</div>\`;
+                if (data.description) {
+                    html += \`<div><strong>Description:</strong> \${data.description}</div>\`;
+                }
+                html += '</div></div>';
+                
+                // Type-specific content
+                if (data.type === 'class' && data.methodsMap) {
+                    // Show methods
+                    html += '<div class="node-detail-section">';
+                    html += '<div class="node-detail-section-title">🔧 Methods (' + Object.keys(data.methodsMap).length + ')</div>';
+                    html += '<div class="node-detail-content">';
+                    
+                    for (const [methodName, methodInfo] of Object.entries(data.methodsMap)) {
+                        const params = methodInfo.params || [];
+                        const paramsStr = params.length > 0 ? params.join(', ') : '';
+                        html += \`<div class="method-item" onclick="jumpToMethod('\${methodInfo.file}', \${methodInfo.line})">\`;
+                        html += \`<span class="method-name">\${methodName}</span>\`;
+                        html += \`<span class="method-params">(\${paramsStr})</span>\`;
+                        html += \`<div style="font-size: 10px; color: var(--vscode-descriptionForeground);">Line \${methodInfo.line}</div>\`;
+                        html += '</div>';
+                    }
+                    
+                    html += '</div></div>';
+                }
+                
+                if (data.type === 'class' && data.properties > 0) {
+                    html += '<div class="node-detail-section">';
+                    html += '<div class="node-detail-section-title">📦 Properties</div>';
+                    html += '<div class="node-detail-content">';
+                    html += \`<div class="property-item">\${data.properties} properties detected</div>\`;
+                    html += '</div></div>';
+                }
+                
+                if (data.type === 'instance') {
+                    html += '<div class="node-detail-section">';
+                    html += '<div class="node-detail-section-title">🔗 Instance Information</div>';
+                    html += '<div class="node-detail-content">';
+                    html += \`<div><strong>Class:</strong> \${data.className}</div>\`;
+                    html += '</div></div>';
+                }
+                
+                content.innerHTML = html;
+                panel.classList.add('visible');
+            } catch (error) {
+                console.error('Error showing node detail:', error);
+                alert('Failed to show node details: ' + error.message);
+            }
+        }
+        
+        // Jump to method function
+        window.jumpToMethod = function(file, line) {
+            try {
+                vscode.postMessage({
+                    command: 'goToLocation',
+                    file: file,
+                    line: line
+                });
+            } catch (error) {
+                console.error('Error jumping to method:', error);
+            }
+        };
+        
+        // Close detail panel handler
+        const closeBtn = document.getElementById('close-detail');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function() {
+                const panel = document.getElementById('node-detail-panel');
+                if (panel) {
+                    panel.classList.remove('visible');
+                }
+            });
+        }
+        
+        // Close panel when clicking outside
+        const detailPanel = document.getElementById('node-detail-panel');
+        if (detailPanel) {
+            detailPanel.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('visible');
+                }
+            });
+        }
+        
+        // Node interaction handlers
+        let tapTimeout = null;
+        let lastTapTime = 0;
+        
+        // Single tap handler (info panel + navigation)
         cy.on('tap', 'node', function(evt) {
             const node = evt.target;
             const data = node.data();
+            const now = Date.now();
             
-            // Show info in panel
-            let info = '<strong>📦 ' + data.name + '</strong><br>';
-            info += 'Type: ' + data.type + '<br>';
-            info += 'File: ' + data.file + '<br>';
-            info += 'Line: ' + data.line;
-            
-            if (data.type === 'class') {
-                info += '<br>Properties: ' + (data.properties || 0);
-                const methodCount = data.methodsMap ? Object.keys(data.methodsMap).length : 0;
-                info += '<br>Methods: ' + methodCount;
-            } else if (data.type === 'instance') {
-                info += '<br>Class: ' + data.className;
+            // Check for double tap (within 300ms)
+            if (now - lastTapTime < 300) {
+                // Double tap - show detail panel
+                if (tapTimeout) {
+                    clearTimeout(tapTimeout);
+                    tapTimeout = null;
+                }
+                showNodeDetail(data);
+                lastTapTime = 0;
+                return;
             }
             
-            if (data.description) {
-                info += '<br><em>' + data.description + '</em>';
-            }
+            lastTapTime = now;
             
-            info += '<div class="clickable-hint">💡 Click again to jump to source code!</div>';
-            
-            document.getElementById('node-info').innerHTML = info;
-            
-            // Send message to VSCode to navigate to source
-            if (data.file && data.line) {
-                vscode.postMessage({
-                    command: 'goToLocation',
-                    file: data.file,
-                    line: data.line
-                });
-            }
+            // Delay single tap action to distinguish from double tap
+            tapTimeout = setTimeout(() => {
+                // Show info in panel
+                let info = '<strong>📦 ' + data.name + '</strong><br>';
+                info += 'Type: ' + data.type + '<br>';
+                info += 'File: ' + data.file + '<br>';
+                info += 'Line: ' + data.line;
+                
+                if (data.type === 'class') {
+                    info += '<br>Properties: ' + (data.properties || 0);
+                    const methodCount = data.methodsMap ? Object.keys(data.methodsMap).length : 0;
+                    info += '<br>Methods: ' + methodCount;
+                } else if (data.type === 'instance') {
+                    info += '<br>Class: ' + data.className;
+                }
+                
+                if (data.description) {
+                    info += '<br><em>' + data.description + '</em>';
+                }
+                
+                info += '<div class="clickable-hint">💡 Double-click to see details | Single-click jumps to source</div>';
+                
+                document.getElementById('node-info').innerHTML = info;
+                
+                // Send message to VSCode to navigate to source
+                if (data.file && data.line) {
+                    vscode.postMessage({
+                        command: 'goToLocation',
+                        file: data.file,
+                        line: data.line
+                    });
+                }
+            }, 300);
         });
+        
+
 
         // Enhanced edge click handler
         cy.on('tap', 'edge', function(evt) {
