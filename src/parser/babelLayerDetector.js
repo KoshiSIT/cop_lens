@@ -320,8 +320,9 @@ class BabelLayerDetector extends BabelBaseDetector {
      */
     extractLayerFromObject(path) {
         const varName = path.node.id?.name || 'anonymous';
-        const conditionProp = path.node.init.properties.find(p => p.key?.name === 'condition');
+        const objectExpr = path.node.init;
         
+        const conditionProp = objectExpr.properties.find(p => p.key?.name === 'condition');
         if (!conditionProp) {
             return null;
         }
@@ -329,14 +330,59 @@ class BabelLayerDetector extends BabelBaseDetector {
         const conditionValue = this.getConditionValue(conditionProp.value);
         const conditionType = this.isSignalCondition(conditionProp.value) ? 'signal' : 'string';
         
-        return {
+        // Extract name property (if exists)
+        const nameProp = objectExpr.properties.find(p => p.key?.name === 'name');
+        const layerName = nameProp?.value?.value || varName;
+        
+        // Extract enter/onEnter callback
+        const enterProp = objectExpr.properties.find(p => 
+            p.key?.name === 'enter' || p.key?.name === 'onEnter'
+        );
+        
+        // Extract exit/onExit callback
+        const exitProp = objectExpr.properties.find(p => 
+            p.key?.name === 'exit' || p.key?.name === 'onExit'
+        );
+        
+        const result = {
             name: varName,
+            layerName: layerName,  // Use 'name' property if available
             condition: conditionValue,
             conditionType: conditionType,
             type: "layer",
             constructorStyle: false,
             ...this.getNodeInfo(path.node)
         };
+        
+        // Add enter callback info if exists
+        if (enterProp && this.isFunctionLike(enterProp.value)) {
+            result.onEnter = {
+                type: 'function',
+                functionType: enterProp.value.type === 'ArrowFunctionExpression' ? 'arrow' : 'regular',
+                line: enterProp.value.loc?.start.line || result.line
+            };
+        }
+        
+        // Add exit callback info if exists
+        if (exitProp && this.isFunctionLike(exitProp.value)) {
+            result.onExit = {
+                type: 'function',
+                functionType: exitProp.value.type === 'ArrowFunctionExpression' ? 'arrow' : 'regular',
+                line: exitProp.value.loc?.start.line || result.line
+            };
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Check if node is function-like
+     * @param {Object} node - AST node
+     * @returns {boolean} True if function-like
+     */
+    isFunctionLike(node) {
+        return node.type === 'FunctionExpression' || 
+               node.type === 'ArrowFunctionExpression';
     }
 
     /**
@@ -356,14 +402,49 @@ class BabelLayerDetector extends BabelBaseDetector {
         const conditionValue = this.getConditionValue(conditionProp.value);
         const conditionType = this.isSignalCondition(conditionProp.value) ? 'signal' : 'string';
         
-        return {
+        // Extract name property (if exists)
+        const nameProp = objectNode.properties.find(p => p.key?.name === 'name');
+        const layerName = nameProp?.value?.value || varName;
+        
+        // Extract enter/onEnter callback
+        const enterProp = objectNode.properties.find(p => 
+            p.key?.name === 'enter' || p.key?.name === 'onEnter'
+        );
+        
+        // Extract exit/onExit callback
+        const exitProp = objectNode.properties.find(p => 
+            p.key?.name === 'exit' || p.key?.name === 'onExit'
+        );
+        
+        const result = {
             name: varName,
+            layerName: layerName,
             condition: conditionValue,
             conditionType: conditionType,
             type: "layer",
             constructorStyle: false,
             ...this.getNodeInfo(assignmentNode)
         };
+        
+        // Add enter callback info if exists
+        if (enterProp && this.isFunctionLike(enterProp.value)) {
+            result.onEnter = {
+                type: 'function',
+                functionType: enterProp.value.type === 'ArrowFunctionExpression' ? 'arrow' : 'regular',
+                line: enterProp.value.loc?.start.line || result.line
+            };
+        }
+        
+        // Add exit callback info if exists
+        if (exitProp && this.isFunctionLike(exitProp.value)) {
+            result.onExit = {
+                type: 'function',
+                functionType: exitProp.value.type === 'ArrowFunctionExpression' ? 'arrow' : 'regular',
+                line: exitProp.value.loc?.start.line || result.line
+            };
+        }
+        
+        return result;
     }
 
     /**
