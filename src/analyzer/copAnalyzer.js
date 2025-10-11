@@ -134,8 +134,10 @@ class COPAnalyzer {
         }
         
         // Add Refinement nodes and edges
+        console.log(`[COPAnalyzer] Processing ${refinements.length} refinements`);
         for (const refinement of refinements) {
             const refType = refinement.type;
+            console.log(`[COPAnalyzer] Processing refinement:`, refType, refinement.targetObject, refinement.methodName);
             
             if (refType === 'refinement_addPartialMethod') {
                 const refId = `Refinement_${refinement.targetObject}_${refinement.methodName}`;
@@ -146,10 +148,14 @@ class COPAnalyzer {
                 let targetMethodLine = null;
                 let targetMethodFile = null;
                 
-                // Try to find the method in classes
-                const targetClass = this.result.classes?.find(c => c.name === refinement.targetObject);
-                if (targetClass && targetClass.methodsMap) {
-                    const method = targetClass.methodsMap[refinement.methodName];
+                // Try to find the method in graph nodes
+                const targetClassNode = graph.nodes?.find(n => 
+                    n.data.type === 'class' && 
+                    n.data.name === refinement.targetObject
+                );
+                
+                if (targetClassNode && targetClassNode.data.methodsMap) {
+                    const method = targetClassNode.data.methodsMap[refinement.methodName];
                     if (method) {
                         targetMethodCode = method.code;
                         targetMethodLine = method.line;
@@ -158,6 +164,8 @@ class COPAnalyzer {
                 }
                 
                 // Add refinement node
+                console.log(`[COPAnalyzer] Adding refinement node: ${refId}`);
+                console.log(`[COPAnalyzer] Target method code found:`, !!targetMethodCode);
                 filteredNodes.push({
                     data: {
                         id: refId,
