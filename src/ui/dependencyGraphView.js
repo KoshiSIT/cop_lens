@@ -738,37 +738,8 @@ class DependencyGraphView {
                 // First click - wait to see if there's a second click
                 clickTimer = setTimeout(() => {
                     console.log('✅ Single click confirmed -', data.name);
-                    // Single click action
-                    let info = '<strong>📦 ' + data.name + '</strong><br>';
-                    info += 'Type: ' + data.type + '<br>';
-                    info += 'File: ' + data.file + '<br>';
-                    info += 'Line: ' + data.line;
-                    
-                    if (data.type === 'class') {
-                        info += '<br>Properties: ' + (data.properties || 0);
-                        const methodCount = data.methodsMap ? Object.keys(data.methodsMap).length : 0;
-                        info += '<br>Methods: ' + methodCount;
-                    } else if (data.type === 'instance') {
-                        info += '<br>Class: ' + data.className;
-                    }
-                    
-                    if (data.description) {
-                        info += '<br><em>' + data.description + '</em>';
-                    }
-                    
-                    info += '<div class="clickable-hint">💡 Double-click to see details | Single-click jumps to source</div>';
-                    
-                    document.getElementById('node-info').innerHTML = info;
-                    
-                    // Navigate to source
-                    if (data.file && data.line) {
-                        vscode.postMessage({
-                            command: 'goToLocation',
-                            file: data.file,
-                            line: data.line
-                        });
-                    }
-                    
+                    // Single click - show detail panel
+                    showNodeDetail(data);
                     clickCount = 0;
                 }, 300);
             } else if (clickCount === 2) {
@@ -777,10 +748,38 @@ class DependencyGraphView {
                 clickCount = 0;
                 
                 console.log('✅✅ Double click detected -', data.name);
-                console.log('📋 Showing detail panel for:', data);
+                console.log('🔗 Jumping to source');
                 
-                // Show detail panel
-                showNodeDetail(data);
+                // Double click - jump to source
+                let info = '<strong>📦 ' + data.name + '</strong><br>';
+                info += 'Type: ' + data.type + '<br>';
+                info += 'File: ' + data.file + '<br>';
+                info += 'Line: ' + data.line;
+                
+                if (data.type === 'class') {
+                    info += '<br>Properties: ' + (data.properties || 0);
+                    const methodCount = data.methodsMap ? Object.keys(data.methodsMap).length : 0;
+                    info += '<br>Methods: ' + methodCount;
+                } else if (data.type === 'instance') {
+                    info += '<br>Class: ' + data.className;
+                }
+                
+                if (data.description) {
+                    info += '<br><em>' + data.description + '</em>';
+                }
+                
+                info += '<div class="clickable-hint">💡 Single-click to see details | Double-click jumps to source</div>';
+                
+                document.getElementById('node-info').innerHTML = info;
+                
+                // Navigate to source
+                if (data.file && data.line) {
+                    vscode.postMessage({
+                        command: 'goToLocation',
+                        file: data.file,
+                        line: data.line
+                    });
+                }
             }
         });
             
