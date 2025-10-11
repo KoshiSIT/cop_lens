@@ -65,6 +65,10 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
      */
     detect(code) {
         this.reset();
+        
+        // Store source code for code extraction (same as parent class)
+        this.sourceCode = code;
+        
         const ast = this.parseCode(code);
         const visitors = this.getVisitors([]);
         
