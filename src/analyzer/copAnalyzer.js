@@ -164,35 +164,10 @@ class COPAnalyzer {
                     }
                 }
                 
-                // If not found in current file, try GlobalStore
-                if (!targetMethodCode && this.globalStore) {
-                    console.log(`[COPAnalyzer] Searching for ${refinement.targetObject}.${refinement.methodName} in GlobalStore`);
-                    
-                    // Get global dependency graph
-                    const globalGraph = this.globalStore.getDependencyGraph();
-                    if (globalGraph && globalGraph.nodes) {
-                        const globalClassNode = globalGraph.nodes.find(n => 
-                            n.data.type === 'class' && 
-                            n.data.name === refinement.targetObject
-                        );
-                        
-                        if (globalClassNode && globalClassNode.data.methodsMap) {
-                            const method = globalClassNode.data.methodsMap[refinement.methodName];
-                            if (method) {
-                                targetMethodCode = method.code;
-                                targetMethodLine = method.line;
-                                targetMethodFile = method.file;
-                                console.log(`[COPAnalyzer] Found target method in GlobalStore: ${targetMethodFile}:${targetMethodLine}`);
-                            }
-                        }
-                    }
-                }
-                
-                // Still not found - set placeholder
+                // Note: GlobalStore is not yet populated during initial analysis
+                // Target method code will be added later by extension.js before display
                 if (!targetMethodCode) {
-                    console.log(`[COPAnalyzer] Target class ${refinement.targetObject} not found anywhere`);
-                    targetMethodFile = 'external';
-                    targetMethodCode = `// ${refinement.targetObject}.${refinement.methodName}() definition not found`;
+                    console.log(`[COPAnalyzer] Target class ${refinement.targetObject} not in current file, will be resolved from GlobalStore later`);
                 }
                 
                 // Add refinement node

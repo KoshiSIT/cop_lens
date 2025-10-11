@@ -218,12 +218,12 @@ async function activate(context) {
                 
                 // Enhance refinement nodes with target method code from GlobalStore
                 if (graphWithHierarchy.nodes) {
-                    console.log('[Graph] Checking refinement nodes for enhancement...');
+                    console.log('[Graph] Enhancing refinement nodes with target method code...');
                     for (const node of graphWithHierarchy.nodes) {
                         if (node.data.type === 'refinement') {
-                            console.log('[Graph] Found refinement:', node.data.id, 'has code:', !!node.data.targetMethodCode);
-                        }
-                        if (node.data.type === 'refinement' && !node.data.targetMethodCode) {
+                            console.log('[Graph] Found refinement:', node.data.id);
+                            console.log('  - Has targetMethodCode before:', !!node.data.targetMethodCode);
+                            
                             const targetObject = node.data.targetObject;
                             const methodName = node.data.methodName;
                             
@@ -236,12 +236,19 @@ async function activate(context) {
                                 
                                 if (targetClassNode && targetClassNode.data.methodsMap) {
                                     const method = targetClassNode.data.methodsMap[methodName];
+                                    console.log(`  - Target class found: ${targetObject}`);
+                                    console.log(`  - Method in map:`, !!method);
                                     if (method) {
+                                        console.log(`  - Method code length:`, method.code?.length || 0);
                                         node.data.targetMethodCode = method.code;
                                         node.data.targetMethodLine = method.line;
                                         node.data.targetMethodFile = method.file;
-                                        console.log(`[Graph] Enhanced refinement node with target method code: ${targetObject}.${methodName}`);
+                                        console.log(`[Graph] ✅ Enhanced refinement with code from: ${method.file}:${method.line}`);
+                                    } else {
+                                        console.log(`  - ❌ Method ${methodName} not found in methodsMap`);
                                     }
+                                } else {
+                                    console.log(`  - ❌ Target class node not found or no methodsMap`);
                                 }
                             }
                         }
