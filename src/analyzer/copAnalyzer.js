@@ -208,6 +208,24 @@ class COPAnalyzer {
                     console.log(`[COPAnalyzer] Target class ${refinement.targetObject} not in current file, will be resolved from GlobalStore later`);
                 }
                 
+                // Determine layer variable name from reference
+                let layerVarName = null;
+                if (refinement.layerReference) {
+                    if (refinement.layerReference.type === 'variable') {
+                        layerVarName = refinement.layerReference.name;
+                    }
+                } else if (refinement.layerObject) {
+                    // Fallback to old property for backward compatibility
+                    layerVarName = refinement.layerObject;
+                }
+                
+                // Get layer display name if available
+                let layerDisplayName = layerVarName;
+                if (layerVarName && layerDefsByVarName.has(layerVarName)) {
+                    const layerDef = layerDefsByVarName.get(layerVarName);
+                    layerDisplayName = layerDef.layerName || layerVarName;
+                }
+                
                 // Add refinement node
                 console.log(`[COPAnalyzer] Adding refinement node: ${refId}`);
                 console.log(`[COPAnalyzer] Target method code found:`, !!targetMethodCode);
@@ -225,7 +243,8 @@ class COPAnalyzer {
                         implementationCode: refinement.implementationCode || null,
                         targetObject: refinement.targetObject,
                         methodName: refinement.methodName,
-                        layerObject: refinement.layerObject,
+                        layerObject: layerVarName,  // Variable name
+                        layerName: layerDisplayName,  // Display name (from 'name' property)
                         targetMethodCode: targetMethodCode,
                         targetMethodLine: targetMethodLine,
                         targetMethodFile: targetMethodFile
@@ -233,15 +252,22 @@ class COPAnalyzer {
                 });
                 
                 // Edge: Layer → Refinement (layer has this refinement)
-                if (refinement.layerObject) {
-                    updatedEdges.push({
-                        data: {
-                            source: `Layer_${refinement.layerObject}`,
-                            target: refId,
-                            type: 'has_refinement',
-                            description: `Layer ${refinement.layerObject} defines this refinement`
-                        }
-                    });
+                if (layerVarName) {
+                    // Check if this layer is deployed
+                    if (deployedLayerNames.has(layerVarName)) {
+                        updatedEdges.push({
+                            data: {
+                                source: `Layer_${layerVarName}`,
+                                target: refId,
+                                type: 'has_refinement',
+                                description: `Layer ${layerVarName} defines this refinement`
+                            }
+                        });
+                        console.log(`[COPAnalyzer] Linked refinement to deployed layer: ${layerVarName}`);
+                    } else {
+                        console.log(`[COPAnalyzer] Warning: Refinement references non-deployed layer: ${layerVarName}`);
+                        // Don't create edge to non-existent layer node
+                    }
                 }
                 
                 // Edge: Method → Refinement (method is refined by this refinement)
