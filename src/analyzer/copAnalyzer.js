@@ -198,6 +198,8 @@ class COPAnalyzer {
                 // Add refinement node
                 console.log(`[COPAnalyzer] Adding refinement node: ${refId}`);
                 console.log(`[COPAnalyzer] Target method code found:`, !!targetMethodCode);
+                console.log(`[COPAnalyzer] Code length:`, targetMethodCode?.length || 0);
+                console.log(`[COPAnalyzer] Target file:`, targetMethodFile);
                 filteredNodes.push({
                     data: {
                         id: refId,

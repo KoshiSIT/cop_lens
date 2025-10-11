@@ -218,7 +218,11 @@ async function activate(context) {
                 
                 // Enhance refinement nodes with target method code from GlobalStore
                 if (graphWithHierarchy.nodes) {
+                    console.log('[Graph] Checking refinement nodes for enhancement...');
                     for (const node of graphWithHierarchy.nodes) {
+                        if (node.data.type === 'refinement') {
+                            console.log('[Graph] Found refinement:', node.data.id, 'has code:', !!node.data.targetMethodCode);
+                        }
                         if (node.data.type === 'refinement' && !node.data.targetMethodCode) {
                             const targetObject = node.data.targetObject;
                             const methodName = node.data.methodName;
