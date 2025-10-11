@@ -41,7 +41,7 @@ class UnifiedProjectAnalyzer {
         for (const file of jsFiles) {
             try {
                 const code = fs.readFileSync(file, 'utf8');
-                const copAnalyzer = new COPAnalyzer(file);
+                const copAnalyzer = new COPAnalyzer(file, store);  // Pass store
                 const result = copAnalyzer.analyze(code);
                 fileResults.set(file, result);
                 successCount++;

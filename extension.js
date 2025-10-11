@@ -215,6 +215,34 @@ async function activate(context) {
                 const graphWithHierarchy = graphProvider.buildGraph();
 
                 console.log('[Graph] Hierarchy calculated:', graphWithHierarchy.hierarchy.size, 'nodes');
+                
+                // Enhance refinement nodes with target method code from GlobalStore
+                if (graphWithHierarchy.nodes) {
+                    for (const node of graphWithHierarchy.nodes) {
+                        if (node.data.type === 'refinement' && !node.data.targetMethodCode) {
+                            const targetObject = node.data.targetObject;
+                            const methodName = node.data.methodName;
+                            
+                            if (targetObject && methodName) {
+                                // Find target class in global graph
+                                const targetClassNode = dependencyGraph.nodes?.find(n => 
+                                    n.data.type === 'class' && 
+                                    n.data.name === targetObject
+                                );
+                                
+                                if (targetClassNode && targetClassNode.data.methodsMap) {
+                                    const method = targetClassNode.data.methodsMap[methodName];
+                                    if (method) {
+                                        node.data.targetMethodCode = method.code;
+                                        node.data.targetMethodLine = method.line;
+                                        node.data.targetMethodFile = method.file;
+                                        console.log(`[Graph] Enhanced refinement node with target method code: ${targetObject}.${methodName}`);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
 
                 // Show in WebView
                 dependencyGraphView.show(

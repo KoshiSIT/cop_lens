@@ -14,8 +14,9 @@ const { COPAnalysisResult } = require('./copAnalysisResult');
  * - Build symbol index
  */
 class COPAnalyzer {
-    constructor(filePath) {
+    constructor(filePath, globalStore = null) {
         this.filePath = filePath;
+        this.globalStore = globalStore;
         
         // Various Detectors
         this.layerDetector = new BabelLayerDetector();
@@ -161,12 +162,37 @@ class COPAnalyzer {
                         targetMethodLine = method.line;
                         targetMethodFile = method.file;
                     }
-                } else {
-                    // Class not found in current file - might be in another file
-                    console.log(`[COPAnalyzer] Target class ${refinement.targetObject} not found in current file`);
-                    // Set a placeholder to indicate external class
+                }
+                
+                // If not found in current file, try GlobalStore
+                if (!targetMethodCode && this.globalStore) {
+                    console.log(`[COPAnalyzer] Searching for ${refinement.targetObject}.${refinement.methodName} in GlobalStore`);
+                    
+                    // Get global dependency graph
+                    const globalGraph = this.globalStore.getDependencyGraph();
+                    if (globalGraph && globalGraph.nodes) {
+                        const globalClassNode = globalGraph.nodes.find(n => 
+                            n.data.type === 'class' && 
+                            n.data.name === refinement.targetObject
+                        );
+                        
+                        if (globalClassNode && globalClassNode.data.methodsMap) {
+                            const method = globalClassNode.data.methodsMap[refinement.methodName];
+                            if (method) {
+                                targetMethodCode = method.code;
+                                targetMethodLine = method.line;
+                                targetMethodFile = method.file;
+                                console.log(`[COPAnalyzer] Found target method in GlobalStore: ${targetMethodFile}:${targetMethodLine}`);
+                            }
+                        }
+                    }
+                }
+                
+                // Still not found - set placeholder
+                if (!targetMethodCode) {
+                    console.log(`[COPAnalyzer] Target class ${refinement.targetObject} not found anywhere`);
                     targetMethodFile = 'external';
-                    targetMethodCode = `// ${refinement.targetObject}.${refinement.methodName}() is defined in another file`;
+                    targetMethodCode = `// ${refinement.targetObject}.${refinement.methodName}() definition not found`;
                 }
                 
                 // Add refinement node
