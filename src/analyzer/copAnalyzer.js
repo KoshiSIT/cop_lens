@@ -81,8 +81,36 @@ class COPAnalyzer {
         const nodes = [...(graph.nodes || [])];
         const edges = [...(graph.edges || [])];
         
-        // Build a map of layer names for quick lookup
-        const layerNames = new Set(layers.map(l => l.name));
+        // Extract deploy calls from refinements
+        const deployCalls = refinements.filter(r => r.type === 'refinement_deploy');
+        console.log(`[COPAnalyzer] Found ${deployCalls.length} deploy calls`);
+        
+        // Build a map of layer definitions by variable name
+        const layerDefsByVarName = new Map();
+        layers.forEach(layer => {
+            layerDefsByVarName.set(layer.name, layer);
+        });
+        
+        // Build a set of deployed layer variable names
+        const deployedLayerNames = new Set();
+        deployCalls.forEach(deploy => {
+            if (deploy.layerReference?.type === 'variable') {
+                const varName = deploy.layerReference.name;
+                if (layerDefsByVarName.has(varName)) {
+                    deployedLayerNames.add(varName);
+                    console.log(`[COPAnalyzer] Layer "${varName}" is deployed`);
+                } else {
+                    console.log(`[COPAnalyzer] Warning: deploy(${varName}) but layer definition not found`);
+                }
+            }
+        });
+        
+        // Only process deployed layers
+        const deployedLayers = layers.filter(l => deployedLayerNames.has(l.name));
+        console.log(`[COPAnalyzer] ${deployedLayers.length}/${layers.length} layers are deployed`);
+        
+        // Build a map of deployed layer names for quick lookup
+        const layerNames = new Set(deployedLayers.map(l => l.name));
         
         // Remove Layer instance nodes that have corresponding Layer definitions
         // We'll replace them with Layer definition nodes
@@ -117,21 +145,31 @@ class COPAnalyzer {
             return edge;
         });
         
-        // Add Layer nodes (these replace the instance nodes)
-        for (const layer of layers) {
+        // Add Layer nodes (only deployed layers)
+        for (const layer of deployedLayers) {
+            const nodeId = `Layer_${layer.name}`;
+            
+            // Use layerName (from 'name' property) if available, otherwise use variable name
+            const displayName = layer.layerName || layer.name;
+            
             filteredNodes.push({
                 data: {
-                    id: `Layer_${layer.name}`,
-                    label: layer.name,
-                    name: layer.name,
+                    id: nodeId,
+                    label: displayName,
+                    name: layer.name,  // Variable name
+                    layerName: displayName,  // Layer name (from 'name' property)
                     type: 'layer',
                     file: this.filePath,
                     line: layer.line,
-                    description: `Layer: ${layer.name}`,
+                    description: `Layer: ${displayName}`,
                     condition: layer.condition,
-                    conditionType: layer.conditionType
+                    conditionType: layer.conditionType,
+                    hasOnEnter: !!layer.onEnter,
+                    hasOnExit: !!layer.onExit
                 }
             });
+            
+            console.log(`[COPAnalyzer] Added deployed layer node: ${nodeId} (${displayName})`);
         }
         
         // Add Refinement nodes and edges
