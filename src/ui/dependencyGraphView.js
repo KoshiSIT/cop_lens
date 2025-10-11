@@ -735,17 +735,24 @@ class DependencyGraphView {
                     }
                     html += '</div></div>';
                     
-                    // Show target method code (Base)
+                    // Show target method code (Original)
                     if (data.targetMethodCode) {
                         html += '<div class="node-detail-section code-section">';
                         html += '<div class="code-section-header">';
-                        html += '<div class="node-detail-section-title">📄 Base Method Code</div>';
-                        if (data.targetMethodFile && data.targetMethodLine) {
-                            html += \`<button class="jump-button" onclick="jumpToMethod('\${data.targetMethodFile}', \${data.targetMethodLine})">🔗 Jump to Base</button>\`;
+                        html += '<div class="node-detail-section-title">📄 Original Method</div>';
+                        if (data.targetMethodFile && data.targetMethodFile !== 'external' && data.targetMethodLine) {
+                            html += \`<button class="jump-button" onclick="jumpToMethod('\${data.targetMethodFile}', \${data.targetMethodLine})">🔗 Jump to Original</button>\`;
                         }
                         html += '</div>';
                         html += '<div class="node-detail-content">';
-                        html += '<pre class="code-container"><code>' + escapeHtml(data.targetMethodCode) + '</code></pre>';
+                        if (data.targetMethodFile === 'external') {
+                            html += '<div style="padding: 12px; background: var(--vscode-textBlockQuote-background); border-radius: 4px; font-style: italic;">';
+                            html += \`ℹ️ The original method \${data.targetObject}.\${data.methodName}() is defined in another file.<br>\`;
+                            html += 'Use "Go to Definition" or search to find it.';
+                            html += '</div>';
+                        } else {
+                            html += '<pre class="code-container"><code>' + escapeHtml(data.targetMethodCode) + '</code></pre>';
+                        }
                         html += '</div></div>';
                     }
                     

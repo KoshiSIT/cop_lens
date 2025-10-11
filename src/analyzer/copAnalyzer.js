@@ -148,7 +148,7 @@ class COPAnalyzer {
                 let targetMethodLine = null;
                 let targetMethodFile = null;
                 
-                // Try to find the method in graph nodes
+                // Try to find the method in graph nodes (same file)
                 const targetClassNode = graph.nodes?.find(n => 
                     n.data.type === 'class' && 
                     n.data.name === refinement.targetObject
@@ -161,6 +161,12 @@ class COPAnalyzer {
                         targetMethodLine = method.line;
                         targetMethodFile = method.file;
                     }
+                } else {
+                    // Class not found in current file - might be in another file
+                    console.log(`[COPAnalyzer] Target class ${refinement.targetObject} not found in current file`);
+                    // Set a placeholder to indicate external class
+                    targetMethodFile = 'external';
+                    targetMethodCode = `// ${refinement.targetObject}.${refinement.methodName}() is defined in another file`;
                 }
                 
                 // Add refinement node
