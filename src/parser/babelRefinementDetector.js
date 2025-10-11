@@ -64,6 +64,55 @@ class BabelRefinementDetector extends BabelBaseDetector {
      * @param {Object} path - Babel path object
      * @returns {Object|null} Exhibit information
      */
+
+    /**
+     * Parse layer reference from AST node
+     * Supports: variables, member expressions, etc.
+     * @param {Object} node - AST node representing layer reference
+     * @returns {Object|null} Layer reference information
+     */
+    parseLayerReference(node) {
+        if (!node) return null;
+        
+        // Pattern 1: Simple variable reference (myLayer)
+        if (node.type === 'Identifier') {
+            return {
+                type: 'variable',
+                name: node.name,
+                raw: node.name
+            };
+        }
+        
+        // Pattern 2: Member expression (config.layers.online)
+        if (node.type === 'MemberExpression') {
+            const path = this.getMemberExpressionName(node);
+            return {
+                type: 'member',
+                path: path,
+                raw: path
+            };
+        }
+        
+        // Pattern 3: Object expression (inline definition)
+        if (node.type === 'ObjectExpression') {
+            return {
+                type: 'inline',
+                raw: 'inline_object'
+            };
+        }
+        
+        // Pattern 4: Function call (getLayers()[0])
+        if (node.type === 'CallExpression') {
+            return {
+                type: 'call',
+                raw: 'function_call'
+            };
+        }
+        
+        // Unknown pattern
+        return null;
+    }
+
     extractExhibit(path) {
         const args = path.node.arguments;
         
@@ -144,12 +193,18 @@ class BabelRefinementDetector extends BabelBaseDetector {
         
         if (args.length < 4) return null;
         
-        // Argument 1: Layer object
-        const layerObject = args[0].name || null;
-        if (!layerObject) return null;
+        // Argument 1: Layer reference (can be variable, member expression, etc.)
+        const layerReference = this.parseLayerReference(args[0]);
+        if (!layerReference) return null;
         
-        // Argument 2: Target object
-        const targetObject = args[1].name || null;
+        // Argument 2: Target object (can be Identifier or MemberExpression)
+        let targetObject = null;
+        if (args[1].type === 'Identifier') {
+            targetObject = args[1].name;
+        } else if (args[1].type === 'MemberExpression') {
+            // EditorWidget.prototype → "EditorWidget"
+            targetObject = args[1].object.name;
+        }
         if (!targetObject) return null;
         
         // Argument 3: Method name
@@ -168,11 +223,12 @@ class BabelRefinementDetector extends BabelBaseDetector {
         
         return {
             type: "refinement_addPartialMethod",
-            layerObject,
+            layerReference,  // Detailed reference info
+            layerObject: layerReference.type === 'variable' ? layerReference.name : null,  // Backward compatibility
             targetObject,
             methodName,
             hasImplementation,
-            implementationCode,  // Add code here
+            implementationCode,
             ...this.getNodeInfo(path.node)
         };
     }
@@ -187,12 +243,14 @@ class BabelRefinementDetector extends BabelBaseDetector {
         
         if (args.length < 1) return null;
         
-        const layerObject = args[0].name || null;
-        if (!layerObject) return null;
+        // Parse layer reference with detailed type information
+        const layerReference = this.parseLayerReference(args[0]);
+        if (!layerReference) return null;
         
         return {
             type: "refinement_deploy",
-            layerObject,
+            layerReference,  // Detailed reference info
+            layerObject: layerReference.type === 'variable' ? layerReference.name : null,  // Backward compatibility
             ...this.getNodeInfo(path.node)
         };
     }
