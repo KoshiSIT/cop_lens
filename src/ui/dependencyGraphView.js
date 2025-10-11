@@ -609,6 +609,13 @@ class DependencyGraphView {
                 console.log('- After fit - zoom:', cy.zoom(), 'center:', cy.center());
             }, 500);
 
+        // Helper function to escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
         // Function to show node detail panel (define before use)
         function showNodeDetail(data) {
             console.log('📋 showNodeDetail called with data:', data);
@@ -677,6 +684,27 @@ class DependencyGraphView {
                     html += '<div class="node-detail-section-title">🔗 Instance Information</div>';
                     html += '<div class="node-detail-content">';
                     html += \`<div><strong>Class:</strong> \${data.className}</div>\`;
+                    html += '</div></div>';
+                }
+                
+                if (data.type === 'refinement' && data.implementationCode) {
+                    // Show refinement code
+                    html += '<div class="node-detail-section">';
+                    html += '<div class="node-detail-section-title">🎯 Refinement Target</div>';
+                    html += '<div class="node-detail-content">';
+                    html += \`<div><strong>Target Class:</strong> \${data.targetObject || 'Unknown'}</div>\`;
+                    html += \`<div><strong>Target Method:</strong> \${data.methodName || 'Unknown'}</div>\`;
+                    if (data.layerObject) {
+                        html += \`<div><strong>Layer:</strong> \${data.layerObject}</div>\`;
+                    }
+                    html += '</div></div>';
+                    
+                    html += '<div class="node-detail-section">';
+                    html += '<div class="node-detail-section-title">💻 Implementation Code</div>';
+                    html += '<div class="node-detail-content">';
+                    html += '<pre style="background: var(--vscode-textCodeBlock-background); padding: 12px; border-radius: 4px; overflow-x: auto; font-size: 11px; line-height: 1.4;">';
+                    html += '<code>' + escapeHtml(data.implementationCode) + '</code>';
+                    html += '</pre>';
                     html += '</div></div>';
                 }
                 

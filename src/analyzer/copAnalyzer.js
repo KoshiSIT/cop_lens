@@ -149,7 +149,11 @@ class COPAnalyzer {
                         type: 'refinement',
                         file: this.filePath,
                         line: refinement.line,
-                        description: `Refinement: ${refinement.targetObject}.${refinement.methodName}()`
+                        description: `Refinement: ${refinement.targetObject}.${refinement.methodName}()`,
+                        implementationCode: refinement.implementationCode || null,  // Add code here
+                        targetObject: refinement.targetObject,
+                        methodName: refinement.methodName,
+                        layerObject: refinement.layerObject
                     }
                 });
                 

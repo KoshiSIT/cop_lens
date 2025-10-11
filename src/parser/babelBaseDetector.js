@@ -25,6 +25,9 @@ class BabelBaseDetector {
      */
     detect(code) {
         const results = [];
+        
+        // Store source code for code extraction
+        this.sourceCode = code;
 
         try {
             const ast = this.parseCode(code);

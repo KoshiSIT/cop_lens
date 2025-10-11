@@ -159,12 +159,20 @@ class BabelRefinementDetector extends BabelBaseDetector {
         // Argument 4: Implementation
         const hasImplementation = this.isFunctionLike(args[3]);
         
+        // Extract code from implementation function
+        let implementationCode = null;
+        if (hasImplementation && args[3].start !== undefined && args[3].end !== undefined) {
+            // Get the source code of the function
+            implementationCode = this.sourceCode.slice(args[3].start, args[3].end);
+        }
+        
         return {
             type: "refinement_addPartialMethod",
             layerObject,
             targetObject,
             methodName,
             hasImplementation,
+            implementationCode,  // Add code here
             ...this.getNodeInfo(path.node)
         };
     }
