@@ -130,6 +130,12 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
         const methodName = path.node.key.name;
         const methodKey = `${this.currentClass}.${methodName}`;
         
+        // Extract method code
+        let methodCode = null;
+        if (this.sourceCode && path.node.start !== undefined && path.node.end !== undefined) {
+            methodCode = this.sourceCode.slice(path.node.start, path.node.end);
+        }
+        
         const methodInfo = {
             type: 'method',
             name: methodName,
@@ -138,7 +144,8 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
             file: this.currentFile || 'unknown',
             line: path.node.loc ? path.node.loc.start.line : 0,
             description: `${this.currentClass}.${methodName}()`,
-            params: path.node.params.map(p => p.name || 'anonymous')
+            params: path.node.params.map(p => p.name || 'anonymous'),
+            code: methodCode  // Add code here
         };
         
         this.methods.set(methodKey, methodInfo);
@@ -380,7 +387,8 @@ class BabelObjectDependencyDetector extends BabelBaseDetector {
                 methodsMap[method.name] = {
                     line: method.line,
                     file: method.file,
-                    params: method.params || []
+                    params: method.params || [],
+                    code: method.code || null  // Add code here
                 };
             });
             

@@ -140,6 +140,23 @@ class COPAnalyzer {
             if (refType === 'refinement_addPartialMethod') {
                 const refId = `Refinement_${refinement.targetObject}_${refinement.methodName}`;
                 
+                // Get target method code
+                const methodKey = `${refinement.targetObject}.${refinement.methodName}`;
+                let targetMethodCode = null;
+                let targetMethodLine = null;
+                let targetMethodFile = null;
+                
+                // Try to find the method in classes
+                const targetClass = this.result.classes?.find(c => c.name === refinement.targetObject);
+                if (targetClass && targetClass.methodsMap) {
+                    const method = targetClass.methodsMap[refinement.methodName];
+                    if (method) {
+                        targetMethodCode = method.code;
+                        targetMethodLine = method.line;
+                        targetMethodFile = method.file;
+                    }
+                }
+                
                 // Add refinement node
                 filteredNodes.push({
                     data: {
@@ -150,10 +167,13 @@ class COPAnalyzer {
                         file: this.filePath,
                         line: refinement.line,
                         description: `Refinement: ${refinement.targetObject}.${refinement.methodName}()`,
-                        implementationCode: refinement.implementationCode || null,  // Add code here
+                        implementationCode: refinement.implementationCode || null,
                         targetObject: refinement.targetObject,
                         methodName: refinement.methodName,
-                        layerObject: refinement.layerObject
+                        layerObject: refinement.layerObject,
+                        targetMethodCode: targetMethodCode,
+                        targetMethodLine: targetMethodLine,
+                        targetMethodFile: targetMethodFile
                     }
                 });
                 

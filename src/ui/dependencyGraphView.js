@@ -435,6 +435,42 @@ class DependencyGraphView {
             background-color: var(--vscode-textBlockQuote-background);
             border-radius: 2px;
         }
+        
+        .code-section {
+            position: relative;
+        }
+        
+        .code-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .jump-button {
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            border-radius: 3px;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: background-color 0.2s;
+        }
+        
+        .jump-button:hover {
+            background: var(--vscode-button-hoverBackground);
+        }
+        
+        .code-container {
+            background: var(--vscode-textCodeBlock-background);
+            padding: 12px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 11px;
+            line-height: 1.4;
+            border: 1px solid var(--vscode-panel-border);
+        }
     </style>
 </head>
 <body>
@@ -687,8 +723,8 @@ class DependencyGraphView {
                     html += '</div></div>';
                 }
                 
-                if (data.type === 'refinement' && data.implementationCode) {
-                    // Show refinement code
+                if (data.type === 'refinement') {
+                    // Show refinement info
                     html += '<div class="node-detail-section">';
                     html += '<div class="node-detail-section-title">🎯 Refinement Target</div>';
                     html += '<div class="node-detail-content">';
@@ -699,13 +735,31 @@ class DependencyGraphView {
                     }
                     html += '</div></div>';
                     
-                    html += '<div class="node-detail-section">';
-                    html += '<div class="node-detail-section-title">💻 Implementation Code</div>';
-                    html += '<div class="node-detail-content">';
-                    html += '<pre style="background: var(--vscode-textCodeBlock-background); padding: 12px; border-radius: 4px; overflow-x: auto; font-size: 11px; line-height: 1.4;">';
-                    html += '<code>' + escapeHtml(data.implementationCode) + '</code>';
-                    html += '</pre>';
-                    html += '</div></div>';
+                    // Show target method code (Base)
+                    if (data.targetMethodCode) {
+                        html += '<div class="node-detail-section code-section">';
+                        html += '<div class="code-section-header">';
+                        html += '<div class="node-detail-section-title">📄 Base Method Code</div>';
+                        if (data.targetMethodFile && data.targetMethodLine) {
+                            html += \`<button class="jump-button" onclick="jumpToMethod('\${data.targetMethodFile}', \${data.targetMethodLine})">🔗 Jump to Base</button>\`;
+                        }
+                        html += '</div>';
+                        html += '<div class="node-detail-content">';
+                        html += '<pre class="code-container"><code>' + escapeHtml(data.targetMethodCode) + '</code></pre>';
+                        html += '</div></div>';
+                    }
+                    
+                    // Show refinement implementation code
+                    if (data.implementationCode) {
+                        html += '<div class="node-detail-section code-section">';
+                        html += '<div class="code-section-header">';
+                        html += '<div class="node-detail-section-title">🔧 Refinement Code</div>';
+                        html += \`<button class="jump-button" onclick="jumpToMethod('\${data.file}', \${data.line})">🔗 Jump to Refinement</button>\`;
+                        html += '</div>';
+                        html += '<div class="node-detail-content">';
+                        html += '<pre class="code-container"><code>' + escapeHtml(data.implementationCode) + '</code></pre>';
+                        html += '</div></div>';
+                    }
                 }
                 
                 content.innerHTML = html;
