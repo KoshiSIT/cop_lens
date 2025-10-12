@@ -1110,10 +1110,10 @@ class DependencyGraphView {
             }
             
             // Build runtime status HTML
-            const statusIcon = status === 'ACTIVE' ? '🟢' : '⚪';
+            const statusIcon = status === 'ACTIVE' ? '\u{1F7E2}' : '\u{26AA}'; // 🟢 or ⚪
             const statusClass = status === 'ACTIVE' ? 'status-active' : 'status-inactive';
             
-            let html = '<div class="node-detail-section-title">⚡ Runtime Status</div>';
+            let html = '<div class="node-detail-section-title">\u{26A1} Runtime Status</div>'; // ⚡
             html += '<div class="node-detail-content">';
             html += '<div class="runtime-status ' + statusClass + '">';
             html += '<div><strong>Status:</strong> ' + statusIcon + ' ' + status + '</div>';
