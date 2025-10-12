@@ -190,6 +190,40 @@
             const originalDeploy = window.EMA.deploy;
             
             window.EMA.deploy = function(layer) {
+                // enter/exitコールバックをラップ
+                if (typeof layer.enter === 'function') {
+                    const originalEnter = layer.enter;
+                    layer.enter = function() {
+                        // Layer有効化イベントを送信
+                        const signals = collectSignalValues();
+                        if (window.__EMA_DEVTOOLS__ && window.__EMA_DEVTOOLS__.connection) {
+                            window.__EMA_DEVTOOLS__.connection.emit('layer:activate', {
+                                layerName: layer.name || 'anonymous',
+                                condition: layer.condition || 'none',
+                                signals: signals
+                            });
+                        }
+                        // 元のenterを実行
+                        return originalEnter.apply(this, arguments);
+                    };
+                }
+
+                if (typeof layer.exit === 'function') {
+                    const originalExit = layer.exit;
+                    layer.exit = function() {
+                        // Layer無効化イベントを送信
+                        const signals = collectSignalValues();
+                        if (window.__EMA_DEVTOOLS__ && window.__EMA_DEVTOOLS__.connection) {
+                            window.__EMA_DEVTOOLS__.connection.emit('layer:deactivate', {
+                                layerName: layer.name || 'anonymous',
+                                signals: signals
+                            });
+                        }
+                        // 元のexitを実行
+                        return originalExit.apply(this, arguments);
+                    };
+                }
+
                 // Layer配備イベントを送信
                 if (window.__EMA_DEVTOOLS__ && window.__EMA_DEVTOOLS__.connection) {
                     window.__EMA_DEVTOOLS__.connection.emit('layer:deploy', {
