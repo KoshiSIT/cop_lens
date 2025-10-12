@@ -1,6 +1,9 @@
 // The module 'vscode' contains the VS Code extensibility API
 const vscode = require("vscode");
 
+// Logger (initialize first)
+const logger = require("./src/utils/logger");
+
 // Unified architecture
 const { COPAnalyzer } = require("./src/analyzer/copAnalyzer");
 const { GlobalCOPDataStore } = require("./src/analyzer/globalCOPDataStore");
@@ -27,24 +30,27 @@ const { determineProjectRoot } = require("./src/utils/projectUtils");
  * @param {vscode.ExtensionContext} context
  */
 async function activate(context) {
-    console.log("COP-lens activated");
+    // Initialize logger
+    logger.initialize();
+    logger.log("COP-lens activated");
+    logger.log("Log file:", logger.getLogFilePath());
     
     try {
-        console.log("Loading dependencies...");
+        logger.log("Loading dependencies...");
         const dependencyGraphView = new DependencyGraphView(context);
         
         // Initialize Global Data Store
         const globalStore = new GlobalCOPDataStore();
         
         // Initialize Runtime Integration
-        console.log("Initializing runtime integration...");
+        logger.log("Initializing runtime integration...");
         const runtimeServer = new RuntimeWebSocketServer(8765);
         const runtimeEventHandler = new RuntimeEventHandler(dependencyGraphView);
         
         // Start WebSocket server
         try {
             await runtimeServer.start();
-            console.log("✅ Runtime WebSocket Server started");
+            logger.log("✅ Runtime WebSocket Server started");
             
             // Register message handler
             runtimeServer.onMessage((message) => {

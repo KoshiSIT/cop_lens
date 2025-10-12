@@ -6,6 +6,7 @@
  */
 
 const GlobalStore = require('../analyzer/globalCOPDataStore');
+const logger = require('../utils/logger');
 
 /**
  * RuntimeEventHandlerクラス
@@ -67,7 +68,7 @@ class RuntimeEventHandler {
     handleLayerDeploy(event) {
         const { layerName, condition, hasEnter, hasExit } = event.data;
         
-        console.log(`📦 Layer deployed: ${layerName} (condition: ${condition})`);
+        logger.log(`📦 Layer deployed: ${layerName} (condition: ${condition})`);
 
         // 初期状態を記録
         this.layerStates.set(layerName, {
@@ -91,8 +92,8 @@ class RuntimeEventHandler {
     handleLayerActivate(event) {
         const { layerName, condition, signals } = event.data;
         
-        console.log(`🟢 Layer activated: ${layerName}`);
-        console.log(`   Signals:`, signals);
+        logger.log(`🟢 Layer activated: ${layerName}`);
+        logger.log(`   Signals:`, signals);
 
         // 状態を更新
         const state = this.layerStates.get(layerName) || {
@@ -117,8 +118,8 @@ class RuntimeEventHandler {
     handleLayerDeactivate(event) {
         const { layerName, signals } = event.data;
         
-        console.log(`⚪ Layer deactivated: ${layerName}`);
-        console.log(`   Signals:`, signals);
+        logger.log(`⚪ Layer deactivated: ${layerName}`);
+        logger.log(`   Signals:`, signals);
 
         // 状態を更新
         const state = this.layerStates.get(layerName) || {
@@ -142,7 +143,7 @@ class RuntimeEventHandler {
     handleRefinementAdd(event) {
         const { layerName, className, methodName } = event.data;
         
-        console.log(`🔧 Refinement added: ${layerName}.${className}.${methodName}`);
+        logger.log(`🔧 Refinement added: ${layerName}.${className}.${methodName}`);
 
         // 現時点では静的解析で既に検出済みなので、特別な処理は不要
         // 将来的には、動的に追加されたRefinementを記録するために使用可能
@@ -157,11 +158,11 @@ class RuntimeEventHandler {
     updateGlobalStore(layerName, status, signals) {
         // UIに通知
         if (this.dependencyGraphView) {
-            console.log(`[UI] Updating runtime status: ${layerName} -> ${status}`);
+            logger.log(`[UI] Updating runtime status: ${layerName} -> ${status}`);
             this.dependencyGraphView.updateRuntimeStatus(layerName, status, signals);
         }
         
-        console.log(`Runtime state noted: ${layerName} -> ${status}`);
+        logger.log(`Runtime state noted: ${layerName} -> ${status}`);
     }
 
     /**
@@ -186,7 +187,7 @@ class RuntimeEventHandler {
      */
     clearStates() {
         this.layerStates.clear();
-        console.log('🧹 Cleared all runtime states');
+        logger.log('🧹 Cleared all runtime states');
     }
 
     /**
