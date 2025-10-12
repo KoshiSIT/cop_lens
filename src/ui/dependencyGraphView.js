@@ -89,6 +89,29 @@ class DependencyGraphView {
     }
 
     /**
+     * Update runtime status in the detail panel
+     * @param {string} layerName - Layer name
+     * @param {string} status - 'ACTIVE' | 'INACTIVE'
+     * @param {Object} signals - Signal values
+     */
+    updateRuntimeStatus(layerName, status, signals) {
+        if (!this._panel) {
+            return;
+        }
+
+        console.log(`[UI] Updating runtime status: ${layerName} → ${status}`);
+
+        // Send update to webview
+        this._panel.webview.postMessage({
+            command: 'updateRuntimeStatus',
+            layerName: layerName,
+            status: status,
+            signals: signals,
+            timestamp: Date.now()
+        });
+    }
+
+    /**
      * Handle messages from webview (node clicks, etc.)
      * @param {Object} message - Message from webview
      */
@@ -470,6 +493,49 @@ class DependencyGraphView {
             font-size: 11px;
             line-height: 1.4;
             border: 1px solid var(--vscode-panel-border);
+        }
+        
+        /* Runtime Status Styles */
+        .runtime-status-section {
+            border-left: 3px solid var(--vscode-charts-blue);
+            background: var(--vscode-editor-inactiveSelectionBackground);
+        }
+        
+        .runtime-status {
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .status-active {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+        
+        .status-inactive {
+            background: rgba(158, 158, 158, 0.1);
+            border: 1px solid rgba(158, 158, 158, 0.3);
+        }
+        
+        .signals-container {
+            margin-top: 4px;
+            padding-left: 12px;
+        }
+        
+        .signal-item {
+            font-size: 11px;
+            padding: 2px 0;
+            font-family: var(--vscode-editor-font-family);
+        }
+        
+        .signal-name {
+            color: var(--vscode-symbolIcon-variableForeground);
+            font-weight: 600;
+        }
+        
+        .signal-value {
+            color: var(--vscode-debugTokenExpression-number);
+            font-family: monospace;
         }
     </style>
 </head>
@@ -933,6 +999,74 @@ class DependencyGraphView {
         // End of cy initialization check
         }
         // End of main validation check
+        
+        // Listen for runtime status updates from extension
+        window.addEventListener('message', event => {
+            const message = event.data;
+            
+            if (message.command === 'updateRuntimeStatus') {
+                updateLayerRuntimeStatus(message.layerName, message.status, message.signals);
+            }
+        });
+        
+        // Function to update layer runtime status in the detail panel
+        function updateLayerRuntimeStatus(layerName, status, signals) {
+            console.log(`🔄 Runtime update: ${layerName} → ${status}`);
+            
+            // Find the node in the current detail panel
+            const panel = document.getElementById('node-detail-panel');
+            if (!panel || !panel.classList.contains('visible')) {
+                return; // Panel not visible
+            }
+            
+            const title = document.getElementById('detail-title');
+            if (!title) return;
+            
+            // Check if current panel is for this layer
+            const currentNodeName = title.textContent.split(' (')[0];
+            if (currentNodeName !== layerName) {
+                return; // Different node is displayed
+            }
+            
+            // Add or update runtime status section
+            let runtimeSection = document.querySelector('.runtime-status-section');
+            if (!runtimeSection) {
+                const content = document.getElementById('detail-content');
+                if (!content) return;
+                
+                // Insert at the beginning
+                runtimeSection = document.createElement('div');
+                runtimeSection.className = 'node-detail-section runtime-status-section';
+                content.insertBefore(runtimeSection, content.firstChild);
+            }
+            
+            // Build runtime status HTML
+            const statusIcon = status === 'ACTIVE' ? '🟢' : '⚪';
+            const statusClass = status === 'ACTIVE' ? 'status-active' : 'status-inactive';
+            
+            let html = '<div class="node-detail-section-title">⚡ Runtime Status</div>';
+            html += '<div class="node-detail-content">';
+            html += `<div class="runtime-status ${statusClass}">`;
+            html += `<div><strong>Status:</strong> ${statusIcon} ${status}</div>`;
+            
+            if (signals && Object.keys(signals).length > 0) {
+                html += '<div style="margin-top: 8px;"><strong>Signals:</strong></div>';
+                html += '<div class="signals-container">';
+                for (const [key, value] of Object.entries(signals)) {
+                    html += `<div class="signal-item">`;
+                    html += `<span class="signal-name">${key}:</span> `;
+                    html += `<span class="signal-value">${JSON.stringify(value)}</span>`;
+                    html += `</div>`;
+                }
+                html += '</div>';
+            }
+            
+            html += '</div></div>';
+            
+            runtimeSection.innerHTML = html;
+            
+            console.log(`✅ Updated runtime status in UI`);
+        }
     </script>
 </body>
 </html>`;
