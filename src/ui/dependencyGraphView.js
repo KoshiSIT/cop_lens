@@ -1068,6 +1068,49 @@ class DependencyGraphView {
                 debugInfo.innerHTML += '<br>Runtime: ' + layerName + ' -> ' + status;
             }
             
+            // Add runtime status node to graph
+            if (window.cy) {
+                const runtimeNodeId = 'runtime-' + layerName;
+                
+                // Check if runtime node already exists
+                let runtimeNode = window.cy.getElementById(runtimeNodeId);
+                
+                if (runtimeNode.length === 0) {
+                    // Create new runtime status node
+                    window.cy.add({
+                        group: 'nodes',
+                        data: {
+                            id: runtimeNodeId,
+                            label: 'Runtime: ' + layerName,
+                            type: 'runtime',
+                            status: status
+                        },
+                        position: { x: 100, y: 100 }
+                    });
+                    runtimeNode = window.cy.getElementById(runtimeNodeId);
+                } else {
+                    // Update existing node
+                    runtimeNode.data('status', status);
+                }
+                
+                // Update node style based on status
+                if (status === 'ACTIVE') {
+                    runtimeNode.style({
+                        'background-color': '#4CAF50',
+                        'border-width': 3,
+                        'border-color': '#2E7D32'
+                    });
+                } else {
+                    runtimeNode.style({
+                        'background-color': '#999',
+                        'border-width': 2,
+                        'border-color': '#666'
+                    });
+                }
+                
+                console.log('Runtime node updated in graph');
+            }
+            
             // Update in detail panel if open
             const detailPanel = document.getElementById('node-detail-panel');
             if (!detailPanel || !detailPanel.classList.contains('visible')) {
