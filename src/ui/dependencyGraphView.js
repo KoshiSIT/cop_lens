@@ -1050,6 +1050,13 @@ class DependencyGraphView {
         function updateLayerRuntimeStatus(layerName, status, signals) {
             console.log('Runtime update: ' + layerName + ' -> ' + status);
             
+            // Debug: Force display in title
+            const debugTitle = document.getElementById('detail-title');
+            if (debugTitle) {
+                debugTitle.style.background = 'red';
+                debugTitle.textContent = '🔥 RECEIVED: ' + layerName + ' -> ' + status;
+            }
+            
             // Log to file via postMessage
             vscode.postMessage({
                 command: 'logRuntimeUpdate',
@@ -1084,8 +1091,7 @@ class DependencyGraphView {
             
             if (layerIndex !== -1) {
                 const startIndex = layerIndex + layerPrefix.length;
-                const endIndex = contentText.indexOf('
-', startIndex);
+                const endIndex = contentText.indexOf('\n', startIndex);
                 actualLayerName = contentText.substring(startIndex, endIndex !== -1 ? endIndex : startIndex + 50).trim();
             }
             
