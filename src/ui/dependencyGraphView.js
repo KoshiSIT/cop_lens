@@ -99,7 +99,7 @@ class DependencyGraphView {
             return;
         }
 
-        console.log(`[UI] Updating runtime status: ${layerName} → ${status}`);
+        console.log('[UI] Updating runtime status: ' + layerName + ' -> ' + status);
 
         // Send update to webview
         this._panel.webview.postMessage({
@@ -1011,7 +1011,7 @@ class DependencyGraphView {
         
         // Function to update layer runtime status in the detail panel
         function updateLayerRuntimeStatus(layerName, status, signals) {
-            console.log(`🔄 Runtime update: ${layerName} → ${status}`);
+            console.log('Runtime update: ' + layerName + ' -> ' + status);
             
             // Find the node in the current detail panel
             const panel = document.getElementById('node-detail-panel');
@@ -1046,17 +1046,17 @@ class DependencyGraphView {
             
             let html = '<div class="node-detail-section-title">⚡ Runtime Status</div>';
             html += '<div class="node-detail-content">';
-            html += `<div class="runtime-status ${statusClass}">`;
-            html += `<div><strong>Status:</strong> ${statusIcon} ${status}</div>`;
+            html += '<div class="runtime-status ' + statusClass + '">';
+            html += '<div><strong>Status:</strong> ' + statusIcon + ' ' + status + '</div>';
             
             if (signals && Object.keys(signals).length > 0) {
                 html += '<div style="margin-top: 8px;"><strong>Signals:</strong></div>';
                 html += '<div class="signals-container">';
                 for (const [key, value] of Object.entries(signals)) {
-                    html += `<div class="signal-item">`;
-                    html += `<span class="signal-name">${key}:</span> `;
-                    html += `<span class="signal-value">${JSON.stringify(value)}</span>`;
-                    html += `</div>`;
+                    html += '<div class="signal-item">';
+                    html += '<span class="signal-name">' + key + ':</span> ';
+                    html += '<span class="signal-value">' + JSON.stringify(value) + '</span>';
+                    html += '</div>';
                 }
                 html += '</div>';
             }
@@ -1065,7 +1065,7 @@ class DependencyGraphView {
             
             runtimeSection.innerHTML = html;
             
-            console.log(`✅ Updated runtime status in UI`);
+            console.log('Updated runtime status in UI');
         }
     </script>
 </body>
