@@ -96,7 +96,7 @@ class DependencyGraphView {
      * @param {Object} signals - Signal values
      */
     updateRuntimeStatus(layerName, status, signals) {
-        if (!this._panel) {
+        if (!this.currentPanel) {
             logger.warn('[UI] Cannot update runtime status: panel is null');
             return;
         }
@@ -105,7 +105,7 @@ class DependencyGraphView {
         logger.log('[UI] Sending postMessage to webview...');
 
         // Send update to webview
-        this._panel.webview.postMessage({
+        this.currentPanel.webview.postMessage({
             command: 'updateRuntimeStatus',
             layerName: layerName,
             status: status,
