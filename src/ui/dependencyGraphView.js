@@ -1038,24 +1038,18 @@ class DependencyGraphView {
         // End of main validation check
         
         // Listen for runtime status updates from extension
-        window.addEventListener('message', event => {
-            const message = event.data;
-            
-            if (message.command === 'updateRuntimeStatus') {
-                updateLayerRuntimeStatus(message.layerName, message.status, message.signals);
-            }
-        });
+        // TEMPORARILY DISABLED FOR DEBUGGING
+        // window.addEventListener('message', event => {
+        //     const message = event.data;
+        //     
+        //     if (message.command === 'updateRuntimeStatus') {
+        //         updateLayerRuntimeStatus(message.layerName, message.status, message.signals);
+        //     }
+        // });
         
         // Function to update layer runtime status in the detail panel
         function updateLayerRuntimeStatus(layerName, status, signals) {
             console.log('Runtime update: ' + layerName + ' -> ' + status);
-            
-            // Debug: Force display in title
-            const debugTitle = document.getElementById('detail-title');
-            if (debugTitle) {
-                debugTitle.style.background = 'red';
-                debugTitle.textContent = '🔥 RECEIVED: ' + layerName + ' -> ' + status;
-            }
             
             // Log to file via postMessage
             vscode.postMessage({
