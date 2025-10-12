@@ -1119,7 +1119,7 @@ class DependencyGraphView {
             html += '<div><strong>Status:</strong> ' + statusIcon + ' ' + status + '</div>';
             
             if (signals && Object.keys(signals).length > 0) {
-                html += '<div style="margin-top: 8px;"><strong>Signals:</strong></div>';
+                html += '<div style=\'margin-top: 8px;\'><strong>Signals:</strong></div>';
                 html += '<div class="signals-container">';
                 for (const [key, value] of Object.entries(signals)) {
                     html += '<div class="signal-item">';
