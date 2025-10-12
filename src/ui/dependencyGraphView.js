@@ -1113,18 +1113,18 @@ class DependencyGraphView {
             const statusIcon = status === 'ACTIVE' ? String.fromCodePoint(0x1F7E2) : String.fromCodePoint(0x26AA); // 🟢 or ⚪
             const statusClass = status === 'ACTIVE' ? 'status-active' : 'status-inactive';
             
-            let html = '<div class="node-detail-section-title">' + String.fromCodePoint(0x26A1) + ' Runtime Status</div>'; // ⚡
-            html += '<div class="node-detail-content">';
-            html += '<div class="runtime-status ' + statusClass + '">';
+            let html = '<div class=\"node-detail-section-title\">' + String.fromCodePoint(0x26A1) + ' Runtime Status</div>';
+            html += '<div class=\"node-detail-content\">';
+            html += '<div class=\"runtime-status ' + statusClass + '\">';
             html += '<div><strong>Status:</strong> ' + statusIcon + ' ' + status + '</div>';
             
             if (signals && Object.keys(signals).length > 0) {
-                html += '<div style=\'margin-top: 8px;\'><strong>Signals:</strong></div>';
-                html += '<div class="signals-container">';
+                html += '<div style=\"margin-top: 8px\"><strong>Signals:</strong></div>';
+                html += '<div class=\"signals-container\">';
                 for (const [key, value] of Object.entries(signals)) {
-                    html += '<div class="signal-item">';
-                    html += '<span class="signal-name">' + key + ':</span> ';
-                    html += '<span class="signal-value">' + JSON.stringify(value) + '</span>';
+                    html += '<div class=\"signal-item\">';
+                    html += '<span class=\"signal-name\">' + key + ':</span> ';
+                    html += '<span class=\"signal-value\">' + JSON.stringify(value) + '</span>';
                     html += '</div>';
                 }
                 html += '</div>';
