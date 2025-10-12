@@ -123,6 +123,14 @@
      */
     function waitForEMA() {
         return new Promise((resolve) => {
+            // まず即座にチェック
+            if (window.EMA && window.Layer && window.Signal) {
+                console.log('✅ EMA.js detected');
+                resolve();
+                return;
+            }
+
+            // 存在しない場合のみポーリング
             const maxWaitTime = 5000; // 5秒
             const startTime = Date.now();
 
@@ -140,7 +148,7 @@
                     console.warn('⚠️ EMA.js not found after 5 seconds. Hooks not applied.');
                     resolve(); // エラーにはしない
                 }
-            }, 50);
+            }, 100); // 100msごとにチェック
         });
     }
 

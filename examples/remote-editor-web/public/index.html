@@ -52,8 +52,15 @@ This editor simulates online/offline behavior using Context-Oriented Programming
     <div id="toast" class="toast"></div>
 
     <!-- JavaScript -->
-    <!-- EMA DevTools Hook (must load first, before any EMA.js usage) -->
-    <script src="ema-devtools-hook.js"></script>
-    <script type="module" src="js/app.js"></script>
+    <script type="module">
+        // Step 1: Load EMA.js and expose globally
+        await import('./js/ema/loader.js');
+        
+        // Step 2: Initialize DevTools hook (patches EMA.js)
+        await import('./ema-devtools-hook.js');
+        
+        // Step 3: Load main application
+        await import('./js/app.js');
+    </script>
 </body>
 </html>
