@@ -1013,6 +1013,10 @@ class DependencyGraphView {
         function updateLayerRuntimeStatus(layerName, status, signals) {
             console.log('Runtime update: ' + layerName + ' -> ' + status);
             
+            // Debug: Show alert to confirm message received
+            document.getElementById('debug-info').innerHTML += 
+                '<br>🔔 Message received: ' + layerName + ' -> ' + status;
+            
             // Find the node in the current detail panel
             const panel = document.getElementById('node-detail-panel');
             if (!panel || !panel.classList.contains('visible')) {
