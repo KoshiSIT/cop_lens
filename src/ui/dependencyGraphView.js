@@ -665,6 +665,9 @@ class DependencyGraphView {
 
     <script>
         const vscode = acquireVsCodeApi();
+        
+        // Store runtime status for all layers
+        const runtimeStatusMap = {};
         const cytoscapeConfig = ${JSON.stringify(cytoscapeConfig, null, 2)};
         
         // Debug information
@@ -794,6 +797,28 @@ class DependencyGraphView {
                 
                 // Build content based on node type
                 let html = '';
+                
+                // Runtime status section (if available for this layer)
+                const layerName = data.layerObject || data.name;
+                if (runtimeStatusMap[layerName]) {
+                    const runtime = runtimeStatusMap[layerName];
+                    const isActive = runtime.status === 'ACTIVE';
+                    const statusColor = isActive ? '#4CAF50' : '#999';
+                    const statusBg = isActive ? 'rgba(76,175,80,0.1)' : 'rgba(150,150,150,0.1)';
+                    const statusIcon = isActive ? '🟢' : '⚪';
+                    
+                    html += '<div class="node-detail-section" style="border: 2px solid ' + statusColor + '; background: ' + statusBg + ';">';
+                    html += '<div class="node-detail-section-title">' + statusIcon + ' Runtime Status</div>';
+                    html += '<div class="node-detail-content">';
+                    html += '<div><strong>Status:</strong> ' + runtime.status + '</div>';
+                    if (runtime.signals && Object.keys(runtime.signals).length > 0) {
+                        html += '<div style="margin-top: 8px;"><strong>Signals:</strong></div>';
+                        html += '<div style="font-size: 12px; font-family: monospace;">' + JSON.stringify(runtime.signals, null, 2) + '</div>';
+                    }
+                    const timeAgo = Math.round((Date.now() - runtime.timestamp) / 1000);
+                    html += '<div style="margin-top: 8px; font-size: 11px; color: var(--vscode-descriptionForeground);">Updated ' + timeAgo + 's ago</div>';
+                    html += '</div></div>';
+                }
                 
                 // Basic info section
                 html += '<div class="node-detail-section">';
@@ -1074,6 +1099,9 @@ class DependencyGraphView {
         // Function to update layer runtime status in the detail panel
         function updateLayerRuntimeStatus(layerName, status, signals) {
             console.log('Runtime update received: ' + layerName + ' -> ' + status);
+            
+            // Store runtime status
+            runtimeStatusMap[layerName] = { status: status, signals: signals, timestamp: Date.now() };
             
             // Show in debug panel
             const debugInfo = document.getElementById('debug-info');
