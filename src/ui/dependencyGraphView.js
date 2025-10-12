@@ -1038,14 +1038,13 @@ class DependencyGraphView {
         // End of main validation check
         
         // Listen for runtime status updates from extension
-        // TEMPORARILY DISABLED FOR DEBUGGING
-        // window.addEventListener('message', event => {
-        //     const message = event.data;
-        //     
-        //     if (message.command === 'updateRuntimeStatus') {
-        //         updateLayerRuntimeStatus(message.layerName, message.status, message.signals);
-        //     }
-        // });
+        window.addEventListener('message', event => {
+            const message = event.data;
+            
+            if (message.command === 'updateRuntimeStatus') {
+                updateLayerRuntimeStatus(message.layerName, message.status, message.signals);
+            }
+        });
         
         // Function to update layer runtime status in the detail panel
         function updateLayerRuntimeStatus(layerName, status, signals) {
