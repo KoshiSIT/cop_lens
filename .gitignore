@@ -18,3 +18,4 @@ analysis/**/*-dependencies.svg
 # Temporary files
 *.tmp
 *.temp
+.claude-snapshots/
