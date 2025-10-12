@@ -729,6 +729,8 @@ class DependencyGraphView {
         }
         
         if (cy) {
+            // Store cy instance globally for runtime updates
+            window.cy = cy;
             console.log('✅ Cytoscape initialized');
             console.log('- Cytoscape instance:', !!cy);
             console.log('- Elements added:', cy.elements().length);
@@ -1069,7 +1071,7 @@ class DependencyGraphView {
             }
             
             // Add runtime status node to graph
-            if (window.cy) {
+            if (window.cy && typeof window.cy.getElementById === 'function') {
                 const runtimeNodeId = 'runtime-' + layerName;
                 
                 // Check if runtime node already exists
