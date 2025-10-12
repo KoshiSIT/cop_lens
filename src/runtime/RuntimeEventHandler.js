@@ -154,27 +154,9 @@ class RuntimeEventHandler {
      * @param {Object} signals - Signal値
      */
     updateGlobalStore(layerName, status, signals) {
-        try {
-            // GlobalStoreにランタイム状態を記録
-            const layers = GlobalStore.getLayersForProject() || [];
-            
-            // 該当するLayerを探して更新
-            const layer = layers.find(l => l.name === layerName);
-            
-            if (layer) {
-                // ランタイム状態を追加
-                layer.runtimeStatus = status;
-                layer.runtimeSignals = signals;
-                layer.runtimeLastUpdate = Date.now();
-                
-                console.log(`✅ Updated GlobalStore for layer: ${layerName} (${status})`);
-            } else {
-                console.log(`⚠️ Layer not found in GlobalStore: ${layerName}`);
-            }
-
-        } catch (error) {
-            console.error('Failed to update GlobalStore:', error);
-        }
+        // GlobalStoreは使用しない（存在しないため）
+        // UIへの通知は handleLayerActivate/Deactivate から直接行われます
+        console.log(`Runtime state noted: ${layerName} -> ${status}`);
     }
 
     /**
