@@ -11,9 +11,10 @@ const GlobalStore = require('../analyzer/globalCOPDataStore');
  * RuntimeEventHandlerクラス
  */
 class RuntimeEventHandler {
-    constructor() {
+    constructor(dependencyGraphView = null) {
         this.layerStates = new Map(); // layerName → LayerRuntimeState
         this.eventListeners = [];
+        this.dependencyGraphView = dependencyGraphView;
     }
 
     /**
@@ -154,8 +155,12 @@ class RuntimeEventHandler {
      * @param {Object} signals - Signal値
      */
     updateGlobalStore(layerName, status, signals) {
-        // GlobalStoreは使用しない（存在しないため）
-        // UIへの通知は handleLayerActivate/Deactivate から直接行われます
+        // UIに通知
+        if (this.dependencyGraphView) {
+            console.log(`[UI] Updating runtime status: ${layerName} -> ${status}`);
+            this.dependencyGraphView.updateRuntimeStatus(layerName, status, signals);
+        }
+        
         console.log(`Runtime state noted: ${layerName} -> ${status}`);
     }
 

@@ -39,7 +39,7 @@ async function activate(context) {
         // Initialize Runtime Integration
         console.log("Initializing runtime integration...");
         const runtimeServer = new RuntimeWebSocketServer(8765);
-        const runtimeEventHandler = new RuntimeEventHandler();
+        const runtimeEventHandler = new RuntimeEventHandler(dependencyGraphView);
         
         // Start WebSocket server
         try {
