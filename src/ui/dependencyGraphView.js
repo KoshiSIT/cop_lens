@@ -134,6 +134,7 @@ class DependencyGraphView {
                 break;
                 
             case 'logRuntimeUpdate':
+                console.log('📝 Received logRuntimeUpdate message:', message);
                 this.logRuntimeUpdate(message);
                 break;
                 
