@@ -133,8 +133,44 @@ class DependencyGraphView {
                 this.exportGraph(message.format);
                 break;
                 
+            case 'logRuntimeUpdate':
+                this.logRuntimeUpdate(message);
+                break;
+                
             default:
                 console.log('Unknown webview message:', message);
+        }
+    }
+
+    /**
+     * Log runtime update to file
+     * @param {Object} message - Log message
+     */
+    logRuntimeUpdate(message) {
+        const vscode = require('vscode');
+        const fs = require('fs');
+        const path = require('path');
+        
+        try {
+            // Log file path (in workspace root)
+            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+            if (!workspaceFolder) {
+                console.warn('No workspace folder found for logging');
+                return;
+            }
+            
+            const logFilePath = path.join(workspaceFolder.uri.fsPath, '.cop-lens-runtime.log');
+            
+            // Create log entry
+            const logEntry = `[${message.timestamp}] ${message.layerName} -> ${message.status}\n` +
+                             `  Signals: ${JSON.stringify(message.signals)}\n\n`;
+            
+            // Overwrite file (keep only latest)
+            fs.writeFileSync(logFilePath, logEntry, 'utf8');
+            
+            console.log(`✅ Runtime update logged to: ${logFilePath}`);
+        } catch (error) {
+            console.error('Failed to write runtime log:', error);
         }
     }
 
@@ -1013,9 +1049,14 @@ class DependencyGraphView {
         function updateLayerRuntimeStatus(layerName, status, signals) {
             console.log('Runtime update: ' + layerName + ' -> ' + status);
             
-            // Debug: Show alert to confirm message received
-            document.getElementById('debug-info').innerHTML += 
-                '<br>🔔 Message received: ' + layerName + ' -> ' + status;
+            // Log to file via postMessage
+            vscode.postMessage({
+                command: 'logRuntimeUpdate',
+                layerName: layerName,
+                status: status,
+                signals: signals,
+                timestamp: new Date().toISOString()
+            });
             
             // Find the node in the current detail panel
             const panel = document.getElementById('node-detail-panel');
