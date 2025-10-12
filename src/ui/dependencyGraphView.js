@@ -1022,11 +1022,34 @@ class DependencyGraphView {
             const title = document.getElementById('detail-title');
             if (!title) return;
             
-            // Check if current panel is for this layer
-            const currentNodeName = title.textContent.split(' (')[0];
-            if (currentNodeName !== layerName) {
+            // Check if current panel is for a layer node
+            const titleText = title.textContent;
+            const currentNodeName = titleText.split(' (')[0];
+            
+            // Get the detail content to check for layer name in description
+            const content = document.getElementById('detail-content');
+            if (!content) return;
+            
+            // Check if "Layer: layerName" exists in the content
+            const contentText = content.textContent || '';
+            const layerPrefix = 'Layer: ';
+            const layerIndex = contentText.indexOf(layerPrefix);
+            let actualLayerName = null;
+            
+            if (layerIndex !== -1) {
+                const startIndex = layerIndex + layerPrefix.length;
+                const endIndex = contentText.indexOf('
+', startIndex);
+                actualLayerName = contentText.substring(startIndex, endIndex !== -1 ? endIndex : startIndex + 50).trim();
+            }
+            
+            // Match by either node name or actual layer name
+            if (currentNodeName !== layerName && actualLayerName !== layerName) {
+                console.log('Layer name mismatch: node=' + currentNodeName + ', layer=' + actualLayerName + ', expected=' + layerName);
                 return; // Different node is displayed
             }
+            
+            console.log('Layer name matched! Updating UI for: ' + layerName);
             
             // Add or update runtime status section
             let runtimeSection = document.querySelector('.runtime-status-section');
