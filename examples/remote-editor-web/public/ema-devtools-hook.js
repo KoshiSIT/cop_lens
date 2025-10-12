@@ -191,12 +191,14 @@
             
             window.EMA.deploy = function(layer) {
                 // Layer配備イベントを送信
-                devtools.emit('layer:deploy', {
-                    layerName: layer.name || 'anonymous',
-                    condition: layer.condition || 'none',
-                    hasEnter: typeof layer.enter === 'function',
-                    hasExit: typeof layer.exit === 'function'
-                });
+                if (window.__EMA_DEVTOOLS__ && window.__EMA_DEVTOOLS__.connection) {
+                    window.__EMA_DEVTOOLS__.connection.emit('layer:deploy', {
+                        layerName: layer.name || 'anonymous',
+                        condition: layer.condition || 'none',
+                        hasEnter: typeof layer.enter === 'function',
+                        hasExit: typeof layer.exit === 'function'
+                    });
+                }
 
                 // 元の処理を実行
                 return originalDeploy.apply(this, arguments);
@@ -214,11 +216,13 @@
                 const signals = collectSignalValues();
 
                 // Layer有効化イベントを送信
-                devtools.emit('layer:activate', {
-                    layerName: this.name || 'anonymous',
-                    condition: this.condition || 'none',
-                    signals: signals
-                });
+                if (window.__EMA_DEVTOOLS__ && window.__EMA_DEVTOOLS__.connection) {
+                    window.__EMA_DEVTOOLS__.connection.emit('layer:activate', {
+                        layerName: this.name || 'anonymous',
+                        condition: this.condition || 'none',
+                        signals: signals
+                    });
+                }
 
                 // 元の処理を実行
                 return originalActivate.apply(this, arguments);
@@ -236,10 +240,12 @@
                 const signals = collectSignalValues();
 
                 // Layer無効化イベントを送信
-                devtools.emit('layer:deactivate', {
-                    layerName: this.name || 'anonymous',
-                    signals: signals
-                });
+                if (window.__EMA_DEVTOOLS__ && window.__EMA_DEVTOOLS__.connection) {
+                    window.__EMA_DEVTOOLS__.connection.emit('layer:deactivate', {
+                        layerName: this.name || 'anonymous',
+                        signals: signals
+                    });
+                }
 
                 // 元の処理を実行
                 return originalDeactivate.apply(this, arguments);
@@ -257,11 +263,13 @@
                 const className = targetPrototype.constructor.name || 'Anonymous';
 
                 // Refinement追加イベントを送信
-                devtools.emit('refinement:add', {
-                    layerName: layer.name || 'anonymous',
-                    className: className,
-                    methodName: methodName
-                });
+                if (window.__EMA_DEVTOOLS__ && window.__EMA_DEVTOOLS__.connection) {
+                    window.__EMA_DEVTOOLS__.connection.emit('refinement:add', {
+                        layerName: layer.name || 'anonymous',
+                        className: className,
+                        methodName: methodName
+                    });
+                }
 
                 // 元の処理を実行
                 return originalAddPartialMethod.apply(this, arguments);
