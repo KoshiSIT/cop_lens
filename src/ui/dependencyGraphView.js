@@ -1043,6 +1043,13 @@ class DependencyGraphView {
         // Listen for runtime status updates from extension
         window.addEventListener('message', event => {
             console.log('WebView received message:', event.data);
+            
+            // Debug: Show in debug panel
+            const debugInfo = document.getElementById('debug-info');
+            if (debugInfo) {
+                debugInfo.innerHTML += '<br>📨 Message received: ' + JSON.stringify(event.data);
+            }
+            
             const message = event.data;
             
             if (message.command === 'updateRuntimeStatus') {
