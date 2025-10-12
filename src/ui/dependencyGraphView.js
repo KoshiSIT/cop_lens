@@ -705,11 +705,22 @@ class DependencyGraphView {
         
         let cy;
         try {
+            // Filter edges to only include those with existing source and target nodes
+            const nodeIds = new Set(cytoscapeConfig.elements.nodes.map(n => n.data.id));
+            const validEdges = cytoscapeConfig.elements.edges.filter(edge => {
+                const hasSource = nodeIds.has(edge.data.source);
+                const hasTarget = nodeIds.has(edge.data.target);
+                if (!hasSource || !hasTarget) {
+                    console.warn('Skipping invalid edge:', edge.data.id, 'source:', edge.data.source, 'target:', edge.data.target);
+                }
+                return hasSource && hasTarget;
+            });
+            
             cy = cytoscape({
             container: document.getElementById('cy'),
             elements: [
                 ...cytoscapeConfig.elements.nodes,
-                ...cytoscapeConfig.elements.edges
+                ...validEdges
             ],
             style: cytoscapeConfig.style,
             layout: cytoscapeConfig.layout,
