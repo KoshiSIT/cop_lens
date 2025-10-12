@@ -1047,7 +1047,16 @@ class DependencyGraphView {
         //     }
         // });
         
-        // Runtime status update function removed for debugging
+        // Function to update layer runtime status in the detail panel
+        function updateLayerRuntimeStatus(layerName, status, signals) {
+            console.log('Runtime update received: ' + layerName + ' -> ' + status);
+            
+            // Show alert to confirm it works
+            const debugInfo = document.getElementById('debug-info');
+            if (debugInfo) {
+                debugInfo.innerHTML += '<br>Runtime: ' + layerName + ' -> ' + status;
+            }
+        }
     </script>
 </body>
 </html>`;
