@@ -5,6 +5,7 @@
 
 const vscode = require('vscode');
 const GraphRenderer = require('../graph/graphRenderer');
+const logger = require('../utils/logger');
 
 class DependencyGraphView {
     constructor(context) {
@@ -96,10 +97,12 @@ class DependencyGraphView {
      */
     updateRuntimeStatus(layerName, status, signals) {
         if (!this._panel) {
+            logger.warn('[UI] Cannot update runtime status: panel is null');
             return;
         }
 
-        console.log('[UI] Updating runtime status: ' + layerName + ' -> ' + status);
+        logger.log('[UI] Updating runtime status: ' + layerName + ' -> ' + status);
+        logger.log('[UI] Sending postMessage to webview...');
 
         // Send update to webview
         this._panel.webview.postMessage({
