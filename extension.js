@@ -7,6 +7,10 @@ const { GlobalCOPDataStore } = require("./src/analyzer/globalCOPDataStore");
 const { UnifiedProjectAnalyzer } = require("./src/analyzer/unifiedProjectAnalyzer");
 const { BabelObjectDependencyDetector } = require("./src/parser/babelObjectDependencyDetector");
 
+// Runtime integration
+const RuntimeWebSocketServer = require("./src/runtime/WebSocketServer");
+const RuntimeEventHandler = require("./src/runtime/RuntimeEventHandler");
+
 // UI Adapters
 const { COPTreeProviderAdapter } = require("./src/ui/treeProviderAdapter");
 const { COPHoverProviderAdapter } = require("./src/ui/hoverProviderAdapter");
@@ -31,6 +35,50 @@ async function activate(context) {
         
         // Initialize Global Data Store
         const globalStore = new GlobalCOPDataStore();
+        
+        // Initialize Runtime Integration
+        console.log("Initializing runtime integration...");
+        const runtimeServer = new RuntimeWebSocketServer(8765);
+        const runtimeEventHandler = new RuntimeEventHandler();
+        
+        // Start WebSocket server
+        try {
+            await runtimeServer.start();
+            console.log("✅ Runtime WebSocket Server started");
+            
+            // Register message handler
+            runtimeServer.onMessage((message) => {
+                runtimeEventHandler.handleMessage(message);
+            });
+            
+            // Register connection handlers
+            runtimeServer.onConnection(() => {
+                console.log("🔗 Runtime client connected");
+                vscode.window.setStatusBarMessage("🟢 EMA DevTools connected", 3000);
+            });
+            
+            runtimeServer.onDisconnection(() => {
+                console.log("🔌 Runtime client disconnected");
+                vscode.window.setStatusBarMessage("⚪ EMA DevTools disconnected", 3000);
+            });
+            
+            // Listen to runtime events and update UI
+            runtimeEventHandler.addEventListener((event) => {
+                // UI更新のトリガー（後で実装）
+                if (event.type === 'layer:activate' || event.type === 'layer:deactivate') {
+                    // 詳細パネルを更新
+                    dependencyGraphView.updateRuntimeStatus(
+                        event.data.layerName,
+                        event.type === 'layer:activate' ? 'ACTIVE' : 'INACTIVE',
+                        event.data.signals
+                    );
+                }
+            });
+            
+        } catch (error) {
+            console.warn("⚠️ Runtime server failed to start:", error.message);
+            console.warn("Runtime features will be unavailable.");
+        }
         
         // Initialize providers with globalStore
         const treeProvider = new COPTreeProviderAdapter(globalStore);
@@ -274,11 +322,16 @@ async function activate(context) {
             }
         });
 
+        // Store runtime server globally for deactivation
+        global.runtimeServer = runtimeServer;
+        
         context.subscriptions.push(
             changeListener, 
             saveListener, 
             dependencyGraphCommand,
-            hoverDisposable
+            hoverDisposable,
+            // Cleanup runtime server on deactivation
+            { dispose: () => runtimeServer.stop() }
         );
         
         setupCommands(context);
@@ -290,7 +343,15 @@ async function activate(context) {
     }
 }
 // This method is called when your extension is deactivated
-function deactivate() { }
+async function deactivate() {
+    console.log("COP-lens deactivating...");
+    
+    // Stop runtime server if running
+    if (global.runtimeServer) {
+        await global.runtimeServer.stop();
+        console.log("Runtime server stopped");
+    }
+}
 
 module.exports = {
     activate,
