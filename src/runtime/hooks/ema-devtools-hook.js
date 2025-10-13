@@ -153,6 +153,12 @@
     }
 
     /**
+     * Registry of exhibited signals
+     * Maps signal name -> signal object
+     */
+    const exhibitedSignals = new Map();
+
+    /**
      * Collect signal values
      * Get current values of signals exposed via EMA.exhibit()
      * @returns {Object} Map of signal name -> value
@@ -160,28 +166,16 @@
     function collectSignalValues() {
         const signals = {};
 
-        // Search for exposed signals from global scope
-        // Search for results of EMA.exhibit(obj, { signalName: signal })
-        
-        // Implementation 1: Search objects on window
-        // (Assuming structure like RemoteEditor)
-        try {
-            for (const key in window) {
-                const obj = window[key];
-                if (obj && typeof obj === 'object') {
-                    for (const prop in obj) {
-                        const value = obj[prop];
-                        // Detect Signal objects
-                        if (value && typeof value === 'object' && 
-                            value.constructor && value.constructor.name === 'Signal') {
-                            signals[prop] = value.value;
-                        }
-                    }
+        // Get values from registered signals
+        exhibitedSignals.forEach((signal, name) => {
+            try {
+                if (signal && typeof signal === 'object' && 'value' in signal) {
+                    signals[name] = signal.value;
                 }
+            } catch (e) {
+                console.warn(`Failed to read signal ${name}:`, e);
             }
-        } catch (e) {
-            // Ignore inaccessible properties
-        }
+        });
 
         return signals;
     }
@@ -296,7 +290,30 @@
             console.log('  ✅ Patched Layer.prototype.deactivate');
         }
 
-        // ----- 4. Patch EMA.addPartialMethod -----
+        // ----- 4. Patch EMA.exhibit -----
+        if (window.EMA && typeof window.EMA.exhibit === 'function') {
+            const originalExhibit = window.EMA.exhibit;
+            
+            window.EMA.exhibit = function(obj, signals) {
+                console.log('🔍 EMA.exhibit called with signals:', Object.keys(signals));
+                
+                // Register all exhibited signals
+                Object.keys(signals).forEach(signalName => {
+                    const signal = signals[signalName];
+                    if (signal && typeof signal === 'object' && signal.constructor && signal.constructor.name === 'Signal') {
+                        console.log(`  ✅ Registered signal: ${signalName}`);
+                        exhibitedSignals.set(signalName, signal);
+                    }
+                });
+                
+                // Execute original exhibit
+                return originalExhibit.apply(this, arguments);
+            };
+            
+            console.log('  ✅ Patched EMA.exhibit');
+        }
+
+        // ----- 5. Patch EMA.addPartialMethod -----
         if (window.EMA && typeof window.EMA.addPartialMethod === 'function') {
             const originalAddPartialMethod = window.EMA.addPartialMethod;
             
