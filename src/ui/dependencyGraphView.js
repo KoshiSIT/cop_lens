@@ -7,6 +7,7 @@ const vscode = require('vscode');
 const GraphRenderer = require('../graph/graphRenderer');
 const logger = require('../utils/logger');
 const { getGraphStyles } = require('./templates/graphStyles');
+const { generateGraphTemplate } = require('./templates/graphTemplate');
 
 class DependencyGraphView {
     constructor(context) {
