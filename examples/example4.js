@@ -63,4 +63,4 @@ playerView.draw();
 
 screen.gyroscope.value = 10; //Landscape is over!!!!
 playerView.kind.value = 'FULL_MOVIE'; //required for portrait
-playerView.draw(); 5
+playerView.draw(); 55

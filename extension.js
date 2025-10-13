@@ -18,6 +18,7 @@ const RuntimeEventHandler = require("./src/runtime/RuntimeEventHandler");
 const { COPTreeProviderAdapter } = require("./src/ui/treeProviderAdapter");
 const { COPHoverProviderAdapter } = require("./src/ui/hoverProviderAdapter");
 const DependencyGraphView = require("./src/ui/dependencyGraphView");
+const TimelineView = require("./src/features/timelineView");
 
 // Utils
 const { setupCommands } = require("./src/commands");
@@ -47,6 +48,9 @@ async function activate(context) {
         const runtimeServer = new RuntimeWebSocketServer(8765);
         const runtimeEventHandler = new RuntimeEventHandler(dependencyGraphView);
         
+        // Initialize Timeline View
+        const timelineView = new TimelineView(context, runtimeEventHandler);
+        
         // Start WebSocket server
         try {
             await runtimeServer.start();
@@ -66,19 +70,25 @@ async function activate(context) {
             runtimeServer.onDisconnection(() => {
                 console.log("🔌 Runtime client disconnected");
                 vscode.window.setStatusBarMessage("⚪ EMA DevTools disconnected", 3000);
+                
+                // Clear runtime state and timeline on disconnect (browser reload)
+                runtimeEventHandler.clearStates();
+                timelineView.clear();
             });
             
             // Listen to runtime events and update UI
             runtimeEventHandler.addEventListener((event) => {
-                // UI更新のトリガー（後で実装）
+                // Update dependency graph
                 if (event.type === 'layer:activate' || event.type === 'layer:deactivate') {
-                    // 詳細パネルを更新
                     dependencyGraphView.updateRuntimeStatus(
                         event.data.layerName,
                         event.type === 'layer:activate' ? 'ACTIVE' : 'INACTIVE',
                         event.data.signals
                     );
                 }
+                
+                // Update timeline view
+                timelineView.addEvent(event);
             });
             
         } catch (error) {
@@ -331,10 +341,16 @@ async function activate(context) {
         // Store runtime server globally for deactivation
         global.runtimeServer = runtimeServer;
         
+        // Register Timeline View command
+        const timelineCommand = vscode.commands.registerCommand('cop-lens.showTimeline', () => {
+            timelineView.show();
+        });
+        
         context.subscriptions.push(
             changeListener, 
             saveListener, 
             dependencyGraphCommand,
+            timelineCommand,
             hoverDisposable,
             // Cleanup runtime server on deactivation
             { dispose: () => runtimeServer.stop() }
