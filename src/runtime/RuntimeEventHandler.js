@@ -1,37 +1,37 @@
 /**
  * Runtime Event Handler
  * 
- * ブラウザから送信されたランタイムイベントを受信・処理し、
- * GlobalStoreを更新してUIに反映させる
+ * Receives and processes runtime events sent from browser,
+ * updates GlobalStore and reflects changes in UI
  */
 
 const GlobalStore = require('../analyzer/globalCOPDataStore');
 const logger = require('../utils/logger');
 
 /**
- * RuntimeEventHandlerクラス
+ * RuntimeEventHandler class
  */
 class RuntimeEventHandler {
     constructor(dependencyGraphView = null) {
-        this.layerStates = new Map(); // layerName → LayerRuntimeState
+        this.layerStates = new Map(); // layerName -> LayerRuntimeState
         this.eventListeners = [];
         this.dependencyGraphView = dependencyGraphView;
     }
 
     /**
-     * イベントを処理
-     * @param {string} eventJson - JSONイベント文字列
+     * Process event
+     * @param {string} eventJson - JSON event string
      */
     handleMessage(eventJson) {
         try {
             const event = JSON.parse(eventJson);
             
-            // プロトコルバージョンチェック
+            // Protocol version check
             if (event.protocolVersion !== '1.0.0') {
                 console.warn(`Unsupported protocol version: ${event.protocolVersion}`);
             }
 
-            // イベントタイプごとに処理
+            // Process by event type
             switch (event.type) {
                 case 'layer:deploy':
                     this.handleLayerDeploy(event);
@@ -53,7 +53,7 @@ class RuntimeEventHandler {
                     console.warn(`Unknown event type: ${event.type}`);
             }
 
-            // イベントリスナーに通知
+            // Notify listeners
             this.notifyListeners(event);
 
         } catch (error) {
@@ -62,7 +62,7 @@ class RuntimeEventHandler {
     }
 
     /**
-     * Layer配備イベント処理
+     * Handle layer deploy event
      * @param {Object} event - LayerDeployEvent
      */
     handleLayerDeploy(event) {
@@ -70,10 +70,10 @@ class RuntimeEventHandler {
         
         logger.log(`📦 Layer deployed: ${layerName} (condition: ${condition})`);
 
-        // 初期状態を記録
+        // Record initial state
         this.layerStates.set(layerName, {
             layerName: layerName,
-            status: 'UNKNOWN', // まだactivate/deactivateされていない
+            status: 'UNKNOWN', // Not yet activated/deactivated
             signals: {},
             lastUpdate: event.timestamp,
             condition: condition,
@@ -81,12 +81,12 @@ class RuntimeEventHandler {
             hasExit: hasExit
         });
 
-        // GlobalStoreに記録（オプション）
-        // 必要に応じてGlobalStoreにランタイム情報を追加
+        // Record in GlobalStore (optional)
+        // Add runtime info to GlobalStore as needed
     }
 
     /**
-     * Layer有効化イベント処理
+     * Handle layer activate event
      * @param {Object} event - LayerActivateEvent
      */
     handleLayerActivate(event) {
@@ -95,7 +95,7 @@ class RuntimeEventHandler {
         logger.log(`🟢 Layer activated: ${layerName}`);
         logger.log(`   Signals:`, signals);
 
-        // 状態を更新
+        // Update state
         const state = this.layerStates.get(layerName) || {
             layerName: layerName,
             condition: condition
@@ -107,12 +107,12 @@ class RuntimeEventHandler {
 
         this.layerStates.set(layerName, state);
 
-        // GlobalStoreを更新
+        // Update GlobalStore
         this.updateGlobalStore(layerName, 'ACTIVE', signals);
     }
 
     /**
-     * Layer無効化イベント処理
+     * Handle layer deactivate event
      * @param {Object} event - LayerDeactivateEvent
      */
     handleLayerDeactivate(event) {
@@ -121,7 +121,7 @@ class RuntimeEventHandler {
         logger.log(`⚪ Layer deactivated: ${layerName}`);
         logger.log(`   Signals:`, signals);
 
-        // 状態を更新
+        // Update state
         const state = this.layerStates.get(layerName) || {
             layerName: layerName
         };
@@ -132,12 +132,12 @@ class RuntimeEventHandler {
 
         this.layerStates.set(layerName, state);
 
-        // GlobalStoreを更新
+        // Update GlobalStore
         this.updateGlobalStore(layerName, 'INACTIVE', signals);
     }
 
     /**
-     * Refinement追加イベント処理
+     * Handle refinement add event
      * @param {Object} event - RefinementAddEvent
      */
     handleRefinementAdd(event) {
@@ -145,18 +145,18 @@ class RuntimeEventHandler {
         
         logger.log(`🔧 Refinement added: ${layerName}.${className}.${methodName}`);
 
-        // 現時点では静的解析で既に検出済みなので、特別な処理は不要
-        // 将来的には、動的に追加されたRefinementを記録するために使用可能
+        // Currently, refinements are already detected by static analysis
+        // In future, this can be used to record dynamically added refinements
     }
 
     /**
-     * GlobalStoreにランタイム状態を更新
-     * @param {string} layerName - Layer名
+     * Update runtime state in GlobalStore
+     * @param {string} layerName - Layer name
      * @param {string} status - 'ACTIVE' | 'INACTIVE'
-     * @param {Object} signals - Signal値
+     * @param {Object} signals - Signal values
      */
     updateGlobalStore(layerName, status, signals) {
-        // UIに通知
+        // Notify UI
         if (this.dependencyGraphView) {
             logger.log(`[UI] Updating runtime status: ${layerName} -> ${status}`);
             this.dependencyGraphView.updateRuntimeStatus(layerName, status, signals);
@@ -166,8 +166,8 @@ class RuntimeEventHandler {
     }
 
     /**
-     * Layer状態を取得
-     * @param {string} layerName - Layer名
+     * Get layer state
+     * @param {string} layerName - Layer name
      * @returns {Object|null} LayerRuntimeState
      */
     getLayerState(layerName) {
@@ -175,15 +175,15 @@ class RuntimeEventHandler {
     }
 
     /**
-     * すべてのLayer状態を取得
-     * @returns {Map} layerName → LayerRuntimeState
+     * Get all layer states
+     * @returns {Map} layerName -> LayerRuntimeState
      */
     getAllLayerStates() {
         return this.layerStates;
     }
 
     /**
-     * 状態をクリア
+     * Clear all states
      */
     clearStates() {
         this.layerStates.clear();
@@ -191,7 +191,7 @@ class RuntimeEventHandler {
     }
 
     /**
-     * イベントリスナーを登録
+     * Register event listener
      * @param {Function} listener - (event) => void
      */
     addEventListener(listener) {
@@ -199,7 +199,7 @@ class RuntimeEventHandler {
     }
 
     /**
-     * イベントリスナーに通知
+     * Notify event listeners
      * @param {Object} event - RuntimeEvent
      */
     notifyListeners(event) {
@@ -213,7 +213,7 @@ class RuntimeEventHandler {
     }
 
     /**
-     * 統計情報を取得
+     * Get statistics
      * @returns {Object}
      */
     getStats() {

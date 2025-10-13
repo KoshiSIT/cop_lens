@@ -1,14 +1,14 @@
 /**
  * Runtime WebSocket Server
  * 
- * VSCode拡張側で起動するWebSocketサーバー
- * ブラウザで実行中のアプリからのランタイムイベントを受信する
+ * WebSocket server running on VSCode extension side
+ * Receives runtime events from browser-side applications
  */
 
 const WebSocket = require('ws');
 
 /**
- * WebSocketサーバークラス
+ * WebSocket server class
  */
 class RuntimeWebSocketServer {
     constructor(port = 8765) {
@@ -21,8 +21,8 @@ class RuntimeWebSocketServer {
     }
 
     /**
-     * サーバーを起動
-     * @returns {Promise<boolean>} 成功時true
+     * Start server
+     * @returns {Promise<boolean>} true on success
      */
     async start() {
         return new Promise((resolve, reject) => {
@@ -30,7 +30,7 @@ class RuntimeWebSocketServer {
                 this.wss = new WebSocket.Server({ port: this.port });
 
                 this.wss.on('listening', () => {
-                    console.log(`✅ EMA DevTools WebSocket Server started on ws://localhost:${this.port}`);
+                    console.log(`✅ Runtime WebSocket Server started on ws://localhost:${this.port}`);
                     resolve(true);
                 });
 
@@ -41,7 +41,7 @@ class RuntimeWebSocketServer {
                 this.wss.on('error', (error) => {
                     console.error('WebSocket Server error:', error);
                     
-                    // EADDRINUSE エラー（ポートが既に使用中）の場合
+                    // EADDRINUSE error (port already in use)
                     if (error.code === 'EADDRINUSE') {
                         console.log(`⚠️ Port ${this.port} is already in use`);
                         reject(new Error(`Port ${this.port} is already in use`));
@@ -57,37 +57,37 @@ class RuntimeWebSocketServer {
     }
 
     /**
-     * クライアント接続時の処理
-     * @param {WebSocket} ws - WebSocketクライアント
+     * Handle client connection
+     * @param {WebSocket} ws - WebSocket client
      */
     handleConnection(ws) {
-        console.log('📱 EMA DevTools client connected');
+        console.log('🔗 Runtime client connected');
         this.clients.add(ws);
 
-        // 接続ハンドラーを実行
+        // Execute connection handlers
         this.connectionHandlers.forEach(handler => handler());
 
-        // メッセージ受信
+        // Receive messages
         ws.on('message', (data) => {
             try {
                 const message = data.toString();
-                // メッセージハンドラーを実行
+                // Execute message handlers
                 this.messageHandlers.forEach(handler => handler(message));
             } catch (error) {
                 console.error('Failed to process message:', error);
             }
         });
 
-        // 切断時
+        // On disconnect
         ws.on('close', () => {
-            console.log('📴 EMA DevTools client disconnected');
+            console.log('📴 Runtime client disconnected');
             this.clients.delete(ws);
             
-            // 切断ハンドラーを実行
+            // Execute disconnection handlers
             this.disconnectionHandlers.forEach(handler => handler());
         });
 
-        // エラー時
+        // On error
         ws.on('error', (error) => {
             console.error('Client connection error:', error);
             this.clients.delete(ws);
@@ -95,7 +95,7 @@ class RuntimeWebSocketServer {
     }
 
     /**
-     * サーバーを停止
+     * Stop server
      * @returns {Promise<void>}
      */
     async stop() {
@@ -105,15 +105,15 @@ class RuntimeWebSocketServer {
                 return;
             }
 
-            // すべてのクライアントを切断
+            // Disconnect all clients
             this.clients.forEach(ws => {
                 ws.close();
             });
             this.clients.clear();
 
-            // サーバーを閉じる
+            // Close server
             this.wss.close(() => {
-                console.log('🛑 EMA DevTools WebSocket Server stopped');
+                console.log('🛑 Runtime WebSocket Server stopped');
                 this.wss = null;
                 resolve();
             });
@@ -121,7 +121,7 @@ class RuntimeWebSocketServer {
     }
 
     /**
-     * メッセージ受信ハンドラーを登録
+     * Register message handler
      * @param {Function} handler - (message: string) => void
      */
     onMessage(handler) {
@@ -129,7 +129,7 @@ class RuntimeWebSocketServer {
     }
 
     /**
-     * クライアント接続ハンドラーを登録
+     * Register connection handler
      * @param {Function} handler - () => void
      */
     onConnection(handler) {
@@ -137,7 +137,7 @@ class RuntimeWebSocketServer {
     }
 
     /**
-     * クライアント切断ハンドラーを登録
+     * Register disconnection handler
      * @param {Function} handler - () => void
      */
     onDisconnection(handler) {
@@ -145,7 +145,7 @@ class RuntimeWebSocketServer {
     }
 
     /**
-     * 接続中のクライアントがあるか
+     * Check if there are connected clients
      * @returns {boolean}
      */
     hasClients() {
@@ -153,7 +153,7 @@ class RuntimeWebSocketServer {
     }
 
     /**
-     * 接続中のクライアント数
+     * Get number of connected clients
      * @returns {number}
      */
     getClientCount() {
@@ -161,8 +161,8 @@ class RuntimeWebSocketServer {
     }
 
     /**
-     * すべてのクライアントにメッセージを送信
-     * @param {string} message - 送信するメッセージ
+     * Send message to all clients
+     * @param {string} message - Message to send
      */
     broadcast(message) {
         this.clients.forEach(ws => {
@@ -173,7 +173,7 @@ class RuntimeWebSocketServer {
     }
 
     /**
-     * サーバーが起動中か
+     * Check if server is running
      * @returns {boolean}
      */
     isRunning() {

@@ -1,12 +1,12 @@
 /**
  * EMA DevTools Hook - Browser Side
  * 
- * このスクリプトはブラウザで実行され、EMA.jsのAPIをMonkey Patchして
- * ランタイムイベントをVSCodeに送信します
+ * This script runs in the browser and monkey patches EMA.js APIs
+ * to send runtime events to VSCode
  * 
- * 使い方:
+ * Usage:
  * <script src="./js/ema/loader.js"></script>
- * <script src="./ema-devtools-hook.js"></script>  ← このファイル
+ * <script src="./ema-devtools-hook.js"></script>  <- This file
  * <script src="./js/app.js"></script>
  */
 
@@ -16,10 +16,10 @@
     const PROTOCOL_VERSION = '1.0.0';
     const DEVTOOLS_WS_URL = 'ws://localhost:8765';
     const MAX_RECONNECT_ATTEMPTS = 3;
-    const RECONNECT_DELAY = 2000; // 2秒
+    const RECONNECT_DELAY = 2000; // 2 seconds
 
     /**
-     * DevTools WebSocket接続マネージャー
+     * DevTools WebSocket connection manager
      */
     class EMADevToolsConnection {
         constructor() {
@@ -30,27 +30,27 @@
         }
 
         /**
-         * WebSocket接続を開始
+         * Start WebSocket connection
          */
         connect() {
             try {
-                console.log('🔌 Connecting to EMA DevTools...');
+                console.log('🔌 Connecting to COP-lens...');
                 this.ws = new WebSocket(DEVTOOLS_WS_URL);
 
                 this.ws.onopen = () => {
                     this.connected = true;
                     this.reconnectAttempts = 0;
-                    console.log('✅ Connected to EMA DevTools');
+                    console.log('✅ Connected to COP-lens');
                 };
 
                 this.ws.onerror = (error) => {
                     this.connected = false;
-                    console.log('⚠️ EMA DevTools not available (this is OK if not debugging)');
+                    console.log('⚠️ COP-lens not available (this is OK if not debugging)');
                 };
 
                 this.ws.onclose = () => {
                     this.connected = false;
-                    console.log('🔌 Disconnected from EMA DevTools');
+                    console.log('🔌 Disconnected from COP-lens');
                     this.scheduleReconnect();
                 };
 
@@ -60,7 +60,7 @@
         }
 
         /**
-         * 再接続をスケジュール
+         * Schedule reconnection
          */
         scheduleReconnect() {
             if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
@@ -81,13 +81,13 @@
         }
 
         /**
-         * イベントを送信
-         * @param {string} type - イベントタイプ
-         * @param {Object} data - イベントデータ
+         * Send event
+         * @param {string} type - Event type
+         * @param {Object} data - Event data
          */
         emit(type, data) {
             if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-                return; // 接続していない場合は静かに無視
+                return; // Silently ignore if not connected
             }
 
             const event = {
@@ -105,7 +105,7 @@
         }
 
         /**
-         * 切断
+         * Disconnect
          */
         disconnect() {
             if (this.reconnectTimer) {
@@ -118,60 +118,60 @@
     }
 
     /**
-     * EMA.jsが読み込まれるまで待つ
+     * Wait for EMA.js to be loaded
      * @returns {Promise<void>}
      */
     function waitForEMA() {
         return new Promise((resolve) => {
-            // まず即座にチェック
+            // Check immediately first
             if (window.EMA && window.Layer && window.Signal) {
                 console.log('✅ EMA.js detected');
                 resolve();
                 return;
             }
 
-            // 存在しない場合のみポーリング
-            const maxWaitTime = 5000; // 5秒
+            // Poll only if not found
+            const maxWaitTime = 5000; // 5 seconds
             const startTime = Date.now();
 
             const check = setInterval(() => {
-                // EMA.jsの主要なAPIが利用可能かチェック
+                // Check if main EMA.js APIs are available
                 if (window.EMA && window.Layer && window.Signal) {
                     clearInterval(check);
                     console.log('✅ EMA.js detected');
                     resolve();
                 }
 
-                // タイムアウト
+                // Timeout
                 if (Date.now() - startTime > maxWaitTime) {
                     clearInterval(check);
                     console.warn('⚠️ EMA.js not found after 5 seconds. Hooks not applied.');
-                    resolve(); // エラーにはしない
+                    resolve(); // Don't reject
                 }
-            }, 100); // 100msごとにチェック
+            }, 100); // Check every 100ms
         });
     }
 
     /**
-     * Signal値を収集
-     * EMA.exhibit()で公開されたSignalの現在値を取得
-     * @returns {Object} Signal名 → 値のマップ
+     * Collect signal values
+     * Get current values of signals exposed via EMA.exhibit()
+     * @returns {Object} Map of signal name -> value
      */
     function collectSignalValues() {
         const signals = {};
 
-        // グローバルスコープから公開されたSignalを探す
-        // EMA.exhibit(obj, { signalName: signal })の結果を探索
+        // Search for exposed signals from global scope
+        // Search for results of EMA.exhibit(obj, { signalName: signal })
         
-        // 実装方法1: window上のオブジェクトを探索
-        // （RemoteEditorのような構造を想定）
+        // Implementation 1: Search objects on window
+        // (Assuming structure like RemoteEditor)
         try {
             for (const key in window) {
                 const obj = window[key];
                 if (obj && typeof obj === 'object') {
                     for (const prop in obj) {
                         const value = obj[prop];
-                        // Signalオブジェクトを検出
+                        // Detect Signal objects
                         if (value && typeof value === 'object' && 
                             value.constructor && value.constructor.name === 'Signal') {
                             signals[prop] = value.value;
@@ -180,29 +180,29 @@
                 }
             }
         } catch (e) {
-            // アクセス不可のプロパティは無視
+            // Ignore inaccessible properties
         }
 
         return signals;
     }
 
     /**
-     * Monkey Patchを適用
-     * @param {EMADevToolsConnection} devtools - DevTools接続
+     * Apply monkey patches
+     * @param {EMADevToolsConnection} devtools - DevTools connection
      */
     function applyMonkeyPatches(devtools) {
-        console.log('🐵 Applying EMA DevTools monkey patches...');
+        console.log('🐵 Applying COP-lens monkey patches...');
 
-        // ----- 1. EMA.deploy のパッチ -----
+        // ----- 1. Patch EMA.deploy -----
         if (window.EMA && typeof window.EMA.deploy === 'function') {
             const originalDeploy = window.EMA.deploy;
             
             window.EMA.deploy = function(layer) {
-                // enter/exitコールバックをラップ
+                // Wrap enter/exit callbacks
                 if (typeof layer.enter === 'function') {
                     const originalEnter = layer.enter;
                     layer.enter = function() {
-                        // Layer有効化イベントを送信
+                        // Send layer activate event
                         const signals = collectSignalValues();
                         if (window.__EMA_DEVTOOLS__ && window.__EMA_DEVTOOLS__.connection) {
                             window.__EMA_DEVTOOLS__.connection.emit('layer:activate', {
@@ -211,7 +211,7 @@
                                 signals: signals
                             });
                         }
-                        // 元のenterを実行
+                        // Execute original enter
                         return originalEnter.apply(this, arguments);
                     };
                 }
@@ -219,7 +219,7 @@
                 if (typeof layer.exit === 'function') {
                     const originalExit = layer.exit;
                     layer.exit = function() {
-                        // Layer無効化イベントを送信
+                        // Send layer deactivate event
                         const signals = collectSignalValues();
                         if (window.__EMA_DEVTOOLS__ && window.__EMA_DEVTOOLS__.connection) {
                             window.__EMA_DEVTOOLS__.connection.emit('layer:deactivate', {
@@ -227,12 +227,12 @@
                                 signals: signals
                             });
                         }
-                        // 元のexitを実行
+                        // Execute original exit
                         return originalExit.apply(this, arguments);
                     };
                 }
 
-                // Layer配備イベントを送信
+                // Send layer deploy event
                 if (window.__EMA_DEVTOOLS__ && window.__EMA_DEVTOOLS__.connection) {
                     window.__EMA_DEVTOOLS__.connection.emit('layer:deploy', {
                         layerName: layer.name || 'anonymous',
@@ -242,22 +242,22 @@
                     });
                 }
 
-                // 元の処理を実行
+                // Execute original processing
                 return originalDeploy.apply(this, arguments);
             };
 
             console.log('  ✅ Patched EMA.deploy');
         }
 
-        // ----- 2. Layer.prototype.activate のパッチ -----
+        // ----- 2. Patch Layer.prototype.activate -----
         if (window.Layer && window.Layer.prototype) {
             const originalActivate = window.Layer.prototype.activate;
             
             window.Layer.prototype.activate = function() {
-                // Signal値を収集
+                // Collect signal values
                 const signals = collectSignalValues();
 
-                // Layer有効化イベントを送信
+                // Send layer activate event
                 if (window.__EMA_DEVTOOLS__ && window.__EMA_DEVTOOLS__.connection) {
                     window.__EMA_DEVTOOLS__.connection.emit('layer:activate', {
                         layerName: this.name || 'anonymous',
@@ -266,22 +266,22 @@
                     });
                 }
 
-                // 元の処理を実行
+                // Execute original processing
                 return originalActivate.apply(this, arguments);
             };
 
             console.log('  ✅ Patched Layer.prototype.activate');
         }
 
-        // ----- 3. Layer.prototype.deactivate のパッチ -----
+        // ----- 3. Patch Layer.prototype.deactivate -----
         if (window.Layer && window.Layer.prototype) {
             const originalDeactivate = window.Layer.prototype.deactivate;
             
             window.Layer.prototype.deactivate = function() {
-                // Signal値を収集
+                // Collect signal values
                 const signals = collectSignalValues();
 
-                // Layer無効化イベントを送信
+                // Send layer deactivate event
                 if (window.__EMA_DEVTOOLS__ && window.__EMA_DEVTOOLS__.connection) {
                     window.__EMA_DEVTOOLS__.connection.emit('layer:deactivate', {
                         layerName: this.name || 'anonymous',
@@ -289,22 +289,22 @@
                     });
                 }
 
-                // 元の処理を実行
+                // Execute original processing
                 return originalDeactivate.apply(this, arguments);
             };
 
             console.log('  ✅ Patched Layer.prototype.deactivate');
         }
 
-        // ----- 4. EMA.addPartialMethod のパッチ -----
+        // ----- 4. Patch EMA.addPartialMethod -----
         if (window.EMA && typeof window.EMA.addPartialMethod === 'function') {
             const originalAddPartialMethod = window.EMA.addPartialMethod;
             
             window.EMA.addPartialMethod = function(layer, targetPrototype, methodName, refinementFn) {
-                // クラス名を取得
+                // Get class name
                 const className = targetPrototype.constructor.name || 'Anonymous';
 
-                // Refinement追加イベントを送信
+                // Send refinement add event
                 if (window.__EMA_DEVTOOLS__ && window.__EMA_DEVTOOLS__.connection) {
                     window.__EMA_DEVTOOLS__.connection.emit('refinement:add', {
                         layerName: layer.name || 'anonymous',
@@ -313,48 +313,48 @@
                     });
                 }
 
-                // 元の処理を実行
+                // Execute original processing
                 return originalAddPartialMethod.apply(this, arguments);
             };
 
             console.log('  ✅ Patched EMA.addPartialMethod');
         }
 
-        console.log('✅ EMA DevTools monkey patches applied successfully');
+        console.log('✅ COP-lens monkey patches applied successfully');
     }
 
     /**
-     * 初期化
+     * Initialize
      */
     async function initialize() {
-        console.log('🚀 EMA DevTools Hook initializing...');
+        console.log('🚀 COP-lens Hook initializing...');
 
-        // DevTools接続を確立
+        // Establish DevTools connection
         const devtools = new EMADevToolsConnection();
         devtools.connect();
 
-        // EMA.jsが読み込まれるまで待つ
+        // Wait for EMA.js to be loaded
         await waitForEMA();
 
-        // Monkey Patchを適用
+        // Apply monkey patches
         if (window.EMA && window.Layer) {
             applyMonkeyPatches(devtools);
         } else {
             console.warn('⚠️ EMA.js not found. DevTools hooks not applied.');
         }
 
-        // グローバルに保存（デバッグ用）
+        // Save globally (for debugging)
         window.__EMA_DEVTOOLS__ = {
             connection: devtools,
             version: PROTOCOL_VERSION
         };
     }
 
-    // DOMContentLoaded後に初期化
+    // Initialize after DOMContentLoaded
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initialize);
     } else {
-        // 既にロード済みの場合は即座に実行
+        // Already loaded, execute immediately
         initialize();
     }
 
