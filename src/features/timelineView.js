@@ -218,7 +218,7 @@ class TimelineView {
             height: 20px;
             display: flex;
             justify-content: space-between;
-            padding: 0 12px;
+            padding: 0 20px;
             font-size: 11px;
             color: var(--vscode-descriptionForeground);
             border-bottom: 1px solid var(--vscode-editorWidget-border);
@@ -231,6 +231,7 @@ class TimelineView {
             width: 100%;
             bottom: 0;
             transition: width 0.2s ease;
+            padding: 0 20px;
         }
         
         .event {
@@ -437,13 +438,17 @@ class TimelineView {
             }
         }
         
-        // Calculate position (0-100%)
+        // Calculate position (with margins)
         function calculatePosition(timestamp) {
             if (!minTime || !maxTime || minTime === maxTime) {
                 return 50;
             }
             const range = maxTime - minTime;
-            return ((timestamp - minTime) / range) * 100;
+            const position = ((timestamp - minTime) / range);
+            
+            // Add 2% margin on both sides to prevent cutoff
+            const margin = 0.02;
+            return (margin + position * (1 - 2 * margin)) * 100;
         }
         
         // Render events
