@@ -28,6 +28,11 @@
                 "command": "cop-lens.showDependencyGraph",
                 "title": "COP: Show Dependency Graph",
                 "icon": "$(graph)"
+            },
+            {
+                "command": "cop-lens.showTimeline",
+                "title": "COP: Show Timeline",
+                "icon": "$(timeline-view-icon)"
             }
         ],
         "views": {
