@@ -1,11 +1,18 @@
 // The module 'vscode' contains the VS Code extensibility API
 const vscode = require("vscode");
 
+// Logger (initialize first)
+const logger = require("./src/utils/logger");
+
 // Unified architecture
 const { COPAnalyzer } = require("./src/analyzer/copAnalyzer");
 const { GlobalCOPDataStore } = require("./src/analyzer/globalCOPDataStore");
 const { UnifiedProjectAnalyzer } = require("./src/analyzer/unifiedProjectAnalyzer");
 const { BabelObjectDependencyDetector } = require("./src/parser/babelObjectDependencyDetector");
+
+// Runtime integration
+const RuntimeWebSocketServer = require("./src/runtime/WebSocketServer");
+const RuntimeEventHandler = require("./src/runtime/RuntimeEventHandler");
 
 // UI Adapters
 const { COPTreeProviderAdapter } = require("./src/ui/treeProviderAdapter");
@@ -23,14 +30,61 @@ const { determineProjectRoot } = require("./src/utils/projectUtils");
  * @param {vscode.ExtensionContext} context
  */
 async function activate(context) {
-    console.log("COP-lens activated");
+    // Initialize logger
+    logger.initialize();
+    logger.log("COP-lens activated");
+    logger.log("Log file:", logger.getLogFilePath());
     
     try {
-        console.log("Loading dependencies...");
+        logger.log("Loading dependencies...");
         const dependencyGraphView = new DependencyGraphView(context);
         
         // Initialize Global Data Store
         const globalStore = new GlobalCOPDataStore();
+        
+        // Initialize Runtime Integration
+        logger.log("Initializing runtime integration...");
+        const runtimeServer = new RuntimeWebSocketServer(8765);
+        const runtimeEventHandler = new RuntimeEventHandler(dependencyGraphView);
+        
+        // Start WebSocket server
+        try {
+            await runtimeServer.start();
+            logger.log("✅ Runtime WebSocket Server started");
+            
+            // Register message handler
+            runtimeServer.onMessage((message) => {
+                runtimeEventHandler.handleMessage(message);
+            });
+            
+            // Register connection handlers
+            runtimeServer.onConnection(() => {
+                console.log("🔗 Runtime client connected");
+                vscode.window.setStatusBarMessage("🟢 EMA DevTools connected", 3000);
+            });
+            
+            runtimeServer.onDisconnection(() => {
+                console.log("🔌 Runtime client disconnected");
+                vscode.window.setStatusBarMessage("⚪ EMA DevTools disconnected", 3000);
+            });
+            
+            // Listen to runtime events and update UI
+            runtimeEventHandler.addEventListener((event) => {
+                // UI更新のトリガー（後で実装）
+                if (event.type === 'layer:activate' || event.type === 'layer:deactivate') {
+                    // 詳細パネルを更新
+                    dependencyGraphView.updateRuntimeStatus(
+                        event.data.layerName,
+                        event.type === 'layer:activate' ? 'ACTIVE' : 'INACTIVE',
+                        event.data.signals
+                    );
+                }
+            });
+            
+        } catch (error) {
+            console.warn("⚠️ Runtime server failed to start:", error.message);
+            console.warn("Runtime features will be unavailable.");
+        }
         
         // Initialize providers with globalStore
         const treeProvider = new COPTreeProviderAdapter(globalStore);
@@ -274,11 +328,16 @@ async function activate(context) {
             }
         });
 
+        // Store runtime server globally for deactivation
+        global.runtimeServer = runtimeServer;
+        
         context.subscriptions.push(
             changeListener, 
             saveListener, 
             dependencyGraphCommand,
-            hoverDisposable
+            hoverDisposable,
+            // Cleanup runtime server on deactivation
+            { dispose: () => runtimeServer.stop() }
         );
         
         setupCommands(context);
@@ -290,7 +349,15 @@ async function activate(context) {
     }
 }
 // This method is called when your extension is deactivated
-function deactivate() { }
+async function deactivate() {
+    console.log("COP-lens deactivating...");
+    
+    // Stop runtime server if running
+    if (global.runtimeServer) {
+        await global.runtimeServer.stop();
+        console.log("Runtime server stopped");
+    }
+}
 
 module.exports = {
     activate,

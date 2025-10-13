@@ -46,11 +46,57 @@ http://localhost:3000
 
 ## 使い方
 
+### 基本操作
+
 1. **ブラウザで開く**: `http://localhost:3000`にアクセス
 2. **状態切り替え**: トグルスイッチでOnline/Offlineを切り替え
 3. **テキスト入力**: エディタエリアに任意のテキストを入力
 4. **Save実行**: 💾 Save Documentボタンをクリック
 5. **ログ確認**: ブラウザのDevTools Consoleで動作ログを確認
+
+### VSCodeでリアルタイム監視（実験的機能）
+
+**前提条件**: cop-lens拡張をVSCodeにインストール済み
+
+1. **VSCodeで拡張を起動**
+   ```
+   - cop-lensプロジェクトをVSCodeで開く
+   - F5キーで拡張を起動（デバッグモード）
+   ```
+
+2. **依存グラフを表示**
+   ```
+   - remote-editor-webプロジェクトのJSファイルを開く
+   - コマンドパレット（Cmd/Ctrl+Shift+P）
+   - "COP: Show Dependency Graph" を実行
+   ```
+
+3. **ブラウザでアプリを起動**
+   ```bash
+   npm start
+   # ブラウザでhttp://localhost:3000を開く
+   ```
+
+4. **リアルタイム状態確認**
+   ```
+   - VSCodeの依存グラフで「onlineEditor」Layerをクリック
+   - 詳細パネルが開く
+   - ブラウザでOnline/Offlineを切り替え
+   - VSCodeのパネルに「🟢 ACTIVE」または「⚪ INACTIVE」が表示される！
+   - Signal値（networkConnected: true/false）もリアルタイム更新
+   ```
+
+5. **コンソール確認**
+   ```
+   VSCode デバッグコンソール:
+   ✅ Runtime WebSocket Server started on ws://localhost:8765
+   📱 EMA DevTools client connected
+   🟢 Layer activated: onlineEditor
+   
+   ブラウザ コンソール:
+   ✅ Connected to EMA DevTools
+   🐵 Applying EMA DevTools monkey patches...
+   ```
 
 ## 期待される動作
 

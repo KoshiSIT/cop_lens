@@ -5,6 +5,7 @@
 
 const vscode = require('vscode');
 const GraphRenderer = require('../graph/graphRenderer');
+const logger = require('../utils/logger');
 
 class DependencyGraphView {
     constructor(context) {
@@ -89,6 +90,31 @@ class DependencyGraphView {
     }
 
     /**
+     * Update runtime status in the detail panel
+     * @param {string} layerName - Layer name
+     * @param {string} status - 'ACTIVE' | 'INACTIVE'
+     * @param {Object} signals - Signal values
+     */
+    updateRuntimeStatus(layerName, status, signals) {
+        if (!this.currentPanel) {
+            logger.warn('[UI] Cannot update runtime status: panel is null');
+            return;
+        }
+
+        logger.log('[UI] Updating runtime status: ' + layerName + ' -> ' + status);
+        logger.log('[UI] Sending postMessage to webview...');
+
+        // Send update to webview
+        this.currentPanel.webview.postMessage({
+            command: 'updateRuntimeStatus',
+            layerName: layerName,
+            status: status,
+            signals: signals,
+            timestamp: Date.now()
+        });
+    }
+
+    /**
      * Handle messages from webview (node clicks, etc.)
      * @param {Object} message - Message from webview
      */
@@ -110,8 +136,45 @@ class DependencyGraphView {
                 this.exportGraph(message.format);
                 break;
                 
+            case 'logRuntimeUpdate':
+                console.log('📝 Received logRuntimeUpdate message:', message);
+                this.logRuntimeUpdate(message);
+                break;
+                
             default:
                 console.log('Unknown webview message:', message);
+        }
+    }
+
+    /**
+     * Log runtime update to file
+     * @param {Object} message - Log message
+     */
+    logRuntimeUpdate(message) {
+        const vscode = require('vscode');
+        const fs = require('fs');
+        const path = require('path');
+        
+        try {
+            // Log file path (in workspace root)
+            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+            if (!workspaceFolder) {
+                console.warn('No workspace folder found for logging');
+                return;
+            }
+            
+            const logFilePath = path.join(workspaceFolder.uri.fsPath, '.cop-lens-runtime.log');
+            
+            // Create log entry
+            const logEntry = `[${message.timestamp}] ${message.layerName} -> ${message.status}\n` +
+                             `  Signals: ${JSON.stringify(message.signals)}\n\n`;
+            
+            // Overwrite file (keep only latest)
+            fs.writeFileSync(logFilePath, logEntry, 'utf8');
+            
+            console.log(`✅ Runtime update logged to: ${logFilePath}`);
+        } catch (error) {
+            console.error('Failed to write runtime log:', error);
         }
     }
 
@@ -471,6 +534,49 @@ class DependencyGraphView {
             line-height: 1.4;
             border: 1px solid var(--vscode-panel-border);
         }
+        
+        /* Activation Styles */
+        .runtime-status-section {
+            border-left: 3px solid var(--vscode-charts-blue);
+            background: var(--vscode-editor-inactiveSelectionBackground);
+        }
+        
+        .runtime-status {
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .status-active {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+        
+        .status-inactive {
+            background: rgba(158, 158, 158, 0.1);
+            border: 1px solid rgba(158, 158, 158, 0.3);
+        }
+        
+        .signals-container {
+            margin-top: 4px;
+            padding-left: 12px;
+        }
+        
+        .signal-item {
+            font-size: 11px;
+            padding: 2px 0;
+            font-family: var(--vscode-editor-font-family);
+        }
+        
+        .signal-name {
+            color: var(--vscode-symbolIcon-variableForeground);
+            font-weight: 600;
+        }
+        
+        .signal-value {
+            color: var(--vscode-debugTokenExpression-number);
+            font-family: monospace;
+        }
     </style>
 </head>
 <body>
@@ -548,10 +654,6 @@ class DependencyGraphView {
             </div>
         </div>
         <div id="node-info">
-            <div id="debug-info" style="background: #ff4444; color: white; padding: 8px; margin-bottom: 8px; border-radius: 4px;">
-                <strong>🔍 Loading...</strong><br>
-                Checking Cytoscape.js and data...
-            </div>
             Click nodes to jump to source code. Drag to move, scroll to zoom.
             <div class="clickable-hint">💡 Nodes are clickable - they'll take you to the source!</div>
         </div>
@@ -559,6 +661,9 @@ class DependencyGraphView {
 
     <script>
         const vscode = acquireVsCodeApi();
+        
+        // Store runtime status for all layers
+        const runtimeStatusMap = {};
         const cytoscapeConfig = ${JSON.stringify(cytoscapeConfig, null, 2)};
         
         // Debug information
@@ -582,28 +687,39 @@ class DependencyGraphView {
         if (!cytoscapeConfig.elements.nodes.length) {
             console.error('❌ No nodes in config!');
             debugInfo += '<strong style="color: #ffaa00;">❌ No nodes found in data!</strong><br>';
-            debugElement.innerHTML = debugInfo;
+            if (debugElement) debugElement.innerHTML = debugInfo;
         } else if (typeof cytoscape === 'undefined') {
             console.error('❌ Cytoscape.js not loaded!');
             debugInfo += '<strong style="color: #ffaa00;">❌ Cytoscape.js library not loaded!</strong><br>';
-            debugElement.innerHTML = debugInfo;
+            if (debugElement) debugElement.innerHTML = debugInfo;
         
         } else {
             debugInfo += '<strong style="color: #00ff00;">✅ All checks passed!</strong><br>';
-            debugElement.innerHTML = debugInfo;
+            if (debugElement) debugElement.innerHTML = debugInfo;
             
             // Initialize Cytoscape
         console.log('🚀 Initializing Cytoscape...');
         debugInfo += '🚀 Initializing Cytoscape...<br>';
-        debugElement.innerHTML = debugInfo;
+        if (debugElement) debugElement.innerHTML = debugInfo;
         
         let cy;
         try {
+            // Filter edges to only include those with existing source and target nodes
+            const nodeIds = new Set(cytoscapeConfig.elements.nodes.map(n => n.data.id));
+            const validEdges = cytoscapeConfig.elements.edges.filter(edge => {
+                const hasSource = nodeIds.has(edge.data.source);
+                const hasTarget = nodeIds.has(edge.data.target);
+                if (!hasSource || !hasTarget) {
+                    console.warn('Skipping invalid edge:', edge.data.id, 'source:', edge.data.source, 'target:', edge.data.target);
+                }
+                return hasSource && hasTarget;
+            });
+            
             cy = cytoscape({
             container: document.getElementById('cy'),
             elements: [
                 ...cytoscapeConfig.elements.nodes,
-                ...cytoscapeConfig.elements.edges
+                ...validEdges
             ],
             style: cytoscapeConfig.style,
             layout: cytoscapeConfig.layout,
@@ -618,11 +734,13 @@ class DependencyGraphView {
         } catch (error) {
             console.error('❌ Cytoscape initialization failed:', error);
             debugInfo += '<strong style="color: #ff0000;">❌ Cytoscape init failed: ' + error.message + '</strong><br>';
-            debugElement.innerHTML = debugInfo;
+            if (debugElement) debugElement.innerHTML = debugInfo;
             cy = null;
         }
         
         if (cy) {
+            // Store cy instance globally for runtime updates
+            window.cy = cy;
             console.log('✅ Cytoscape initialized');
             console.log('- Cytoscape instance:', !!cy);
             console.log('- Elements added:', cy.elements().length);
@@ -635,7 +753,7 @@ class DependencyGraphView {
             debugInfo += '- Nodes: ' + cy.nodes().length + '<br>';
             debugInfo += '- Edges: ' + cy.edges().length + '<br>';
             debugInfo += '- Container: ' + cy.container().clientWidth + 'x' + cy.container().clientHeight + '<br>';
-            debugElement.innerHTML = debugInfo;
+            if (debugElement) debugElement.innerHTML = debugInfo;
         
             // Force resize and fit
             setTimeout(() => {
@@ -675,6 +793,28 @@ class DependencyGraphView {
                 
                 // Build content based on node type
                 let html = '';
+                
+                // Runtime status section (if available for this layer)
+                const layerName = data.layerObject || data.name;
+                if (runtimeStatusMap[layerName]) {
+                    const runtime = runtimeStatusMap[layerName];
+                    const isActive = runtime.status === 'ACTIVE';
+                    const statusColor = isActive ? '#4CAF50' : '#999';
+                    const statusBg = isActive ? 'rgba(76,175,80,0.1)' : 'rgba(150,150,150,0.1)';
+                    const statusIcon = isActive ? '🟢' : '⚪';
+                    
+                    html += '<div class="node-detail-section" style="border: 2px solid ' + statusColor + '; background: ' + statusBg + ';">';
+                    html += '<div class="node-detail-section-title">' + statusIcon + ' Activation</div>';
+                    html += '<div class="node-detail-content">';
+                    html += '<div><strong>Activation:</strong> ' + runtime.status + '</div>';
+                    if (runtime.signals && Object.keys(runtime.signals).length > 0) {
+                        html += '<div style="margin-top: 8px;"><strong>Signals:</strong></div>';
+                        html += '<div style="font-size: 12px; font-family: monospace;">' + JSON.stringify(runtime.signals, null, 2) + '</div>';
+                    }
+                    const timeAgo = Math.round((Date.now() - runtime.timestamp) / 1000);
+                    html += '<div style="margin-top: 8px; font-size: 11px; color: var(--vscode-descriptionForeground);">Updated ' + timeAgo + 's ago</div>';
+                    html += '</div></div>';
+                }
                 
                 // Basic info section
                 html += '<div class="node-detail-section">';
@@ -933,6 +1073,118 @@ class DependencyGraphView {
         // End of cy initialization check
         }
         // End of main validation check
+        
+        // Listen for runtime status updates from extension
+        window.addEventListener('message', event => {
+            console.log('WebView received message:', event.data);
+            
+            const message = event.data;
+            
+            if (message.command === 'updateRuntimeStatus') {
+                console.log('Calling updateLayerRuntimeStatus...');
+                updateLayerRuntimeStatus(message.layerName, message.status, message.signals);
+            }
+        });
+        
+        // Function to update layer runtime status in the detail panel
+        function updateLayerRuntimeStatus(layerName, status, signals) {
+            console.log('Runtime update received: ' + layerName + ' -> ' + status);
+            
+            // Store runtime status
+            runtimeStatusMap[layerName] = { status: status, signals: signals, timestamp: Date.now() };
+            
+            // Add runtime status node to graph
+            if (window.cy && typeof window.cy.getElementById === 'function') {
+                const runtimeNodeId = 'runtime-' + layerName;
+                
+                // Check if runtime node already exists
+                let runtimeNode = window.cy.getElementById(runtimeNodeId);
+                
+                if (runtimeNode.length === 0) {
+                    // Create new runtime status node
+                    window.cy.add({
+                        group: 'nodes',
+                        data: {
+                            id: runtimeNodeId,
+                            label: 'Runtime: ' + layerName,
+                            type: 'runtime',
+                            status: status
+                        },
+                        position: { x: 100, y: 100 }
+                    });
+                    runtimeNode = window.cy.getElementById(runtimeNodeId);
+                } else {
+                    // Update existing node
+                    runtimeNode.data('status', status);
+                }
+                
+                // Update node style based on status
+                if (status === 'ACTIVE') {
+                    runtimeNode.style({
+                        'background-color': '#4CAF50',
+                        'border-width': 3,
+                        'border-color': '#2E7D32'
+                    });
+                } else {
+                    runtimeNode.style({
+                        'background-color': '#999',
+                        'border-width': 2,
+                        'border-color': '#666'
+                    });
+                }
+                
+                console.log('Runtime node updated in graph');
+            }
+            
+            // Update in detail panel if open
+            const detailPanel = document.getElementById('node-detail-panel');
+            if (!detailPanel || !detailPanel.classList.contains('visible')) {
+                return; // Panel not open
+            }
+            
+            const detailTitle = document.getElementById('detail-title');
+            if (!detailTitle) return;
+            
+            // Check if this is the correct layer
+            const titleText = detailTitle.textContent;
+            if (titleText.indexOf(layerName) === -1 && titleText.indexOf('onlineLayerDefinition') === -1) {
+                return; // Different layer
+            }
+            
+            // Add runtime status at the top of detail content
+            const detailContent = document.getElementById('detail-content');
+            if (!detailContent) return;
+            
+            // Remove existing runtime status if present
+            const existingStatus = detailContent.querySelector('.runtime-status-display');
+            if (existingStatus) {
+                existingStatus.remove();
+            }
+            
+            // Create new runtime status display
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'runtime-status-display';
+            statusDiv.style.cssText = 'padding: 12px; margin-bottom: 12px; border: 2px solid ' + (status === 'ACTIVE' ? '#4CAF50' : '#999') + '; border-radius: 4px; background: ' + (status === 'ACTIVE' ? 'rgba(76,175,80,0.1)' : 'rgba(150,150,150,0.1)') + ';';
+            
+            const statusText = document.createElement('div');
+            statusText.style.cssText = 'font-weight: bold; font-size: 14px;';
+            statusText.textContent = 'Activation: ' + status;
+            
+            statusDiv.appendChild(statusText);
+            
+            // Add signals if present
+            if (signals && Object.keys(signals).length > 0) {
+                const signalsText = document.createElement('div');
+                signalsText.style.cssText = 'margin-top: 8px; font-size: 12px;';
+                signalsText.textContent = 'Signals: ' + JSON.stringify(signals);
+                statusDiv.appendChild(signalsText);
+            }
+            
+            // Insert at the beginning
+            detailContent.insertBefore(statusDiv, detailContent.firstChild);
+            
+            console.log('Runtime status updated in detail panel');
+        }
     </script>
 </body>
 </html>`;
