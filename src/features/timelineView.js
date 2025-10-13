@@ -89,6 +89,20 @@ class TimelineView {
     }
 
     /**
+     * Clear all events from timeline
+     */
+    clear() {
+        console.log('📊 [Timeline] Clearing all events');
+        this.events = [];
+
+        if (this.panel) {
+            this.sendToWebview({
+                command: 'clear'
+            });
+        }
+    }
+
+    /**
      * Send message to webview
      */
     sendToWebview(message) {
@@ -544,7 +558,12 @@ class TimelineView {
                     break;
                     
                 case 'clear':
+                    console.log('📊 [Timeline WebView] Clearing all events');
                     events = [];
+                    minTime = null;
+                    maxTime = null;
+                    document.getElementById('time-scale').innerHTML = '';
+                    document.getElementById('event-detail').classList.remove('visible');
                     renderEvents();
                     break;
             }

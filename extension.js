@@ -70,6 +70,10 @@ async function activate(context) {
             runtimeServer.onDisconnection(() => {
                 console.log("🔌 Runtime client disconnected");
                 vscode.window.setStatusBarMessage("⚪ EMA DevTools disconnected", 3000);
+                
+                // Clear runtime state and timeline on disconnect (browser reload)
+                runtimeEventHandler.clearStates();
+                timelineView.clear();
             });
             
             // Listen to runtime events and update UI
