@@ -1,4 +1,4 @@
-let {Signal, SignalComp, Layer, EMA, show} = require("../loader");
+let { Signal, SignalComp, Layer, EMA, show } = require("../loader");
 
 let screen = {
     gyroscope: new Signal(0),
@@ -21,7 +21,7 @@ let landscape = {
         console.log("ENTER LANDSCAPE");
         screen.rotate();
     },
-    exit: function() {
+    exit: function () {
         console.log("landscape is over");
     }
 
@@ -37,9 +37,9 @@ let portrait = {
 // End layers
 
 
-EMA.exhibit(screen, {gyroLevel: screen.gyroscope});
-EMA.exhibit(playerView, {kindMovie: playerView.kind});
-EMA.exhibit(landscape, {landscape: landscape.condition});
+EMA.exhibit(screen, { gyroLevel: screen.gyroscope });
+EMA.exhibit(playerView, { kindMovie: playerView.kind });
+EMA.exhibit(landscape, { landscape: landscape.condition });
 
 //Adding two partial layers
 EMA.addPartialMethod(landscape, playerView, "draw", function () {
@@ -63,4 +63,4 @@ playerView.draw();
 
 screen.gyroscope.value = 10; //Landscape is over!!!!
 playerView.kind.value = 'FULL_MOVIE'; //required for portrait
-playerView.draw();
+playerView.draw(); 5

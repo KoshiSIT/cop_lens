@@ -53,26 +53,14 @@ function getNodeDetailHandlerCode() {
 function generateRuntimeStatusSection() {
     return `
                 // Runtime status section (if available for this layer)
-                const layerName = data.layerObject || data.name;
-                if (runtimeStatusMap[layerName]) {
-                    const runtime = runtimeStatusMap[layerName];
-                    const isActive = runtime.status === 'ACTIVE';
-                    const statusColor = isActive ? '#4CAF50' : '#999';
-                    const statusBg = isActive ? 'rgba(76,175,80,0.1)' : 'rgba(150,150,150,0.1)';
-                    const statusIcon = isActive ? '🟢' : '⚪';
-                    
-                    html += '<div class="node-detail-section" style="border: 2px solid ' + statusColor + '; background: ' + statusBg + ';">';
-                    html += '<div class="node-detail-section-title">' + statusIcon + ' Activation</div>';
-                    html += '<div class="node-detail-content">';
-                    html += '<div><strong>Activation:</strong> ' + runtime.status + '</div>';
-                    if (runtime.signals && Object.keys(runtime.signals).length > 0) {
-                        html += '<div style="margin-top: 8px;"><strong>Signals:</strong></div>';
-                        html += '<div style="font-size: 12px; font-family: monospace;">' + JSON.stringify(runtime.signals, null, 2) + '</div>';
-                    }
-                    const timeAgo = Math.round((Date.now() - runtime.timestamp) / 1000);
-                    html += '<div style="margin-top: 8px; font-size: 11px; color: var(--vscode-descriptionForeground);">Updated ' + timeAgo + 's ago</div>';
-                    html += '</div></div>';
-                }
+                // Use layerName (actual layer.name) instead of layerObject (variable name)
+                const layerName = data.layerName || data.name;
+                
+                const runtime = runtimeStatusMap[layerName];
+                const isActive = runtime && runtime.status === 'ACTIVE';
+                
+                // Runtime status is now shown inline with each code section (ACTIVE/INACTIVE badges)
+                // No need for a separate Activation section at the top
     `;
 }
 
@@ -135,6 +123,12 @@ function generateTypeSpecificSections() {
                 }
                 
                 if (data.type === 'refinement') {
+                    // Check runtime status for this refinement's layer
+                    // Use layerName (actual layer.name) instead of layerObject (variable name)
+                    const layerName = data.layerName || data.name;
+                    const runtime = runtimeStatusMap[layerName];
+                    const isActive = runtime && runtime.status === 'ACTIVE';
+                    
                     html += '<div class="node-detail-section">';
                     html += '<div class="node-detail-section-title">🎯 Refinement Target</div>';
                     html += '<div class="node-detail-content">';
@@ -145,10 +139,20 @@ function generateTypeSpecificSections() {
                     }
                     html += '</div></div>';
                     
+                    // Determine which code is currently active
+                    const originalActive = !isActive;
+                    const refinementActive = isActive;
+                    
+                    // Original Method Section
                     if (data.targetMethodCode) {
-                        html += '<div class="node-detail-section code-section">';
+                        const opacity = originalActive ? '1.0' : '0.4';
+                        const borderColor = originalActive ? 'var(--vscode-editorInfo-foreground)' : 'var(--vscode-editorWidget-border)';
+                        const bgColor = originalActive ? 'var(--vscode-editor-background)' : 'var(--vscode-editorWidget-background)';
+                        const badge = originalActive ? '🟢 ACTIVE' : '⚪ INACTIVE';
+                        
+                        html += '<div class="node-detail-section code-section" style="opacity: ' + opacity + '; border-left: 3px solid ' + borderColor + ';">';
                         html += '<div class="code-section-header">';
-                        html += '<div class="node-detail-section-title">📄 Original Method</div>';
+                        html += '<div class="node-detail-section-title">📄 Original Method <span style="margin-left: 8px; font-size: 11px; padding: 2px 8px; border-radius: 12px; background: ' + (originalActive ? 'rgba(76,175,80,0.2)' : 'rgba(150,150,150,0.2)') + ';">' + badge + '</span></div>';
                         if (data.targetMethodFile && data.targetMethodFile !== 'external' && data.targetMethodLine) {
                             html += \`<button class="jump-button" onclick="jumpToMethod('\${data.targetMethodFile}', \${data.targetMethodLine})">🔗 Jump to Original</button>\`;
                         }
@@ -160,19 +164,26 @@ function generateTypeSpecificSections() {
                             html += 'Use "Go to Definition" or search to find it.';
                             html += '</div>';
                         } else {
-                            html += '<pre class="code-container"><code>' + escapeHtml(data.targetMethodCode) + '</code></pre>';
+                            html += '<pre class="code-container" style="background: ' + bgColor + ';"><code>' + escapeHtml(data.targetMethodCode) + '</code></pre>';
                         }
                         html += '</div></div>';
                     }
                     
+                    // Refinement Code Section
                     if (data.implementationCode) {
-                        html += '<div class="node-detail-section code-section">';
+                        const opacity = refinementActive ? '1.0' : '0.4';
+                        const borderColor = refinementActive ? '#4CAF50' : 'var(--vscode-editorWidget-border)';
+                        const bgColor = refinementActive ? 'var(--vscode-editor-background)' : 'var(--vscode-editorWidget-background)';
+                        const badge = refinementActive ? '🟢 ACTIVE' : '⚪ INACTIVE';
+                        const layerLabel = data.layerObject ? ' (' + data.layerObject + ')' : '';
+                        
+                        html += '<div class="node-detail-section code-section" style="opacity: ' + opacity + '; border-left: 3px solid ' + borderColor + ';">';
                         html += '<div class="code-section-header">';
-                        html += '<div class="node-detail-section-title">🔧 Refinement Code</div>';
+                        html += '<div class="node-detail-section-title">🔧 Refinement Code' + layerLabel + ' <span style="margin-left: 8px; font-size: 11px; padding: 2px 8px; border-radius: 12px; background: ' + (refinementActive ? 'rgba(76,175,80,0.2)' : 'rgba(150,150,150,0.2)') + ';">' + badge + '</span></div>';
                         html += \`<button class="jump-button" onclick="jumpToMethod('\${data.file}', \${data.line})">🔗 Jump to Refinement</button>\`;
                         html += '</div>';
                         html += '<div class="node-detail-content">';
-                        html += '<pre class="code-container"><code>' + escapeHtml(data.implementationCode) + '</code></pre>';
+                        html += '<pre class="code-container" style="background: ' + bgColor + ';"><code>' + escapeHtml(data.implementationCode) + '</code></pre>';
                         html += '</div></div>';
                     }
                 }

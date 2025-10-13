@@ -242,12 +242,9 @@ function generateMessageListener() {
     return `
         // Listen for runtime status updates from extension
         window.addEventListener('message', event => {
-            console.log('WebView received message:', event.data);
-            
             const message = event.data;
             
             if (message.command === 'updateRuntimeStatus') {
-                console.log('Calling updateLayerRuntimeStatus...');
                 updateLayerRuntimeStatus(message.layerName, message.status, message.signals);
             }
         });
