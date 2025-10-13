@@ -687,20 +687,20 @@ class DependencyGraphView {
         if (!cytoscapeConfig.elements.nodes.length) {
             console.error('❌ No nodes in config!');
             debugInfo += '<strong style="color: #ffaa00;">❌ No nodes found in data!</strong><br>';
-            debugElement.innerHTML = debugInfo;
+            if (debugElement) debugElement.innerHTML = debugInfo;
         } else if (typeof cytoscape === 'undefined') {
             console.error('❌ Cytoscape.js not loaded!');
             debugInfo += '<strong style="color: #ffaa00;">❌ Cytoscape.js library not loaded!</strong><br>';
-            debugElement.innerHTML = debugInfo;
+            if (debugElement) debugElement.innerHTML = debugInfo;
         
         } else {
             debugInfo += '<strong style="color: #00ff00;">✅ All checks passed!</strong><br>';
-            debugElement.innerHTML = debugInfo;
+            if (debugElement) debugElement.innerHTML = debugInfo;
             
             // Initialize Cytoscape
         console.log('🚀 Initializing Cytoscape...');
         debugInfo += '🚀 Initializing Cytoscape...<br>';
-        debugElement.innerHTML = debugInfo;
+        if (debugElement) debugElement.innerHTML = debugInfo;
         
         let cy;
         try {
@@ -734,7 +734,7 @@ class DependencyGraphView {
         } catch (error) {
             console.error('❌ Cytoscape initialization failed:', error);
             debugInfo += '<strong style="color: #ff0000;">❌ Cytoscape init failed: ' + error.message + '</strong><br>';
-            debugElement.innerHTML = debugInfo;
+            if (debugElement) debugElement.innerHTML = debugInfo;
             cy = null;
         }
         
@@ -753,7 +753,7 @@ class DependencyGraphView {
             debugInfo += '- Nodes: ' + cy.nodes().length + '<br>';
             debugInfo += '- Edges: ' + cy.edges().length + '<br>';
             debugInfo += '- Container: ' + cy.container().clientWidth + 'x' + cy.container().clientHeight + '<br>';
-            debugElement.innerHTML = debugInfo;
+            if (debugElement) debugElement.innerHTML = debugInfo;
         
             // Force resize and fit
             setTimeout(() => {
