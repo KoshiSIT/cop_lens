@@ -19,3 +19,4 @@ analysis/**/*-dependencies.svg
 *.tmp
 *.temp
 .claude-snapshots/
+examples/.cop-lens-debug.log
