@@ -175,12 +175,39 @@ class TimelineView {
             border-radius: 4px;
         }
         
+        .timeline-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .zoom-button {
+            padding: 4px 8px;
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .zoom-button:hover {
+            background: var(--vscode-button-hoverBackground);
+        }
+        
+        .zoom-level {
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground);
+        }
+        
         .timeline-track {
             position: relative;
-            height: 80px;
+            height: 150px;
             background: var(--vscode-editor-background);
             border: 1px solid var(--vscode-editorWidget-border);
             border-radius: 4px;
+            overflow-x: auto;
+            overflow-y: hidden;
         }
         
         .time-scale {
@@ -201,8 +228,9 @@ class TimelineView {
             position: absolute;
             top: 20px;
             left: 0;
-            right: 0;
+            width: 100%;
             bottom: 0;
+            transition: width 0.2s ease;
         }
         
         .event {
@@ -325,6 +353,12 @@ class TimelineView {
     <div class="timeline-container">
         <div class="timeline-header">
             <span>📱 RemoteEditor</span>
+            <div class="timeline-controls">
+                <button class="zoom-button" onclick="zoomOut()">-</button>
+                <span class="zoom-level" id="zoom-level">100%</span>
+                <button class="zoom-button" onclick="zoomIn()">+</button>
+                <button class="zoom-button" onclick="zoomFit()">Fit</button>
+            </div>
             <span id="event-count-2">0 events</span>
         </div>
         
@@ -349,6 +383,7 @@ class TimelineView {
         let events = [];
         let minTime = null;
         let maxTime = null;
+        let zoomLevel = 1.0; // 1.0 = 100%
         
         // Event type configuration
         const EVENT_CONFIG = {
@@ -509,6 +544,32 @@ class TimelineView {
                     break;
             }
         });
+        
+        // Zoom functions
+        function zoomIn() {
+            zoomLevel = Math.min(zoomLevel * 1.5, 10.0);
+            updateZoom();
+        }
+        
+        function zoomOut() {
+            zoomLevel = Math.max(zoomLevel / 1.5, 0.1);
+            updateZoom();
+        }
+        
+        function zoomFit() {
+            zoomLevel = 1.0;
+            updateZoom();
+        }
+        
+        function updateZoom() {
+            const eventsLayer = document.getElementById('events-layer');
+            eventsLayer.style.width = (zoomLevel * 100) + '%';
+            
+            document.getElementById('zoom-level').textContent = Math.round(zoomLevel * 100) + '%';
+            
+            // Re-render events with new positions
+            renderEvents();
+        }
         
         // Notify extension that webview is ready
         vscode.postMessage({ command: 'ready' });
