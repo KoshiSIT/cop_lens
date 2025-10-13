@@ -535,7 +535,7 @@ class DependencyGraphView {
             border: 1px solid var(--vscode-panel-border);
         }
         
-        /* Runtime Status Styles */
+        /* Activation Styles */
         .runtime-status-section {
             border-left: 3px solid var(--vscode-charts-blue);
             background: var(--vscode-editor-inactiveSelectionBackground);
@@ -654,10 +654,6 @@ class DependencyGraphView {
             </div>
         </div>
         <div id="node-info">
-            <div id="debug-info" style="background: #ff4444; color: white; padding: 8px; margin-bottom: 8px; border-radius: 4px;">
-                <strong>🔍 Loading...</strong><br>
-                Checking Cytoscape.js and data...
-            </div>
             Click nodes to jump to source code. Drag to move, scroll to zoom.
             <div class="clickable-hint">💡 Nodes are clickable - they'll take you to the source!</div>
         </div>
@@ -808,9 +804,9 @@ class DependencyGraphView {
                     const statusIcon = isActive ? '🟢' : '⚪';
                     
                     html += '<div class="node-detail-section" style="border: 2px solid ' + statusColor + '; background: ' + statusBg + ';">';
-                    html += '<div class="node-detail-section-title">' + statusIcon + ' Runtime Status</div>';
+                    html += '<div class="node-detail-section-title">' + statusIcon + ' Activation</div>';
                     html += '<div class="node-detail-content">';
-                    html += '<div><strong>Status:</strong> ' + runtime.status + '</div>';
+                    html += '<div><strong>Activation:</strong> ' + runtime.status + '</div>';
                     if (runtime.signals && Object.keys(runtime.signals).length > 0) {
                         html += '<div style="margin-top: 8px;"><strong>Signals:</strong></div>';
                         html += '<div style="font-size: 12px; font-family: monospace;">' + JSON.stringify(runtime.signals, null, 2) + '</div>';
@@ -1082,12 +1078,6 @@ class DependencyGraphView {
         window.addEventListener('message', event => {
             console.log('WebView received message:', event.data);
             
-            // Debug: Show in debug panel
-            const debugInfo = document.getElementById('debug-info');
-            if (debugInfo) {
-                debugInfo.innerHTML += '<br>📨 Message received: ' + JSON.stringify(event.data);
-            }
-            
             const message = event.data;
             
             if (message.command === 'updateRuntimeStatus') {
@@ -1102,12 +1092,6 @@ class DependencyGraphView {
             
             // Store runtime status
             runtimeStatusMap[layerName] = { status: status, signals: signals, timestamp: Date.now() };
-            
-            // Show in debug panel
-            const debugInfo = document.getElementById('debug-info');
-            if (debugInfo) {
-                debugInfo.innerHTML += '<br>Runtime: ' + layerName + ' -> ' + status;
-            }
             
             // Add runtime status node to graph
             if (window.cy && typeof window.cy.getElementById === 'function') {
@@ -1184,7 +1168,7 @@ class DependencyGraphView {
             
             const statusText = document.createElement('div');
             statusText.style.cssText = 'font-weight: bold; font-size: 14px;';
-            statusText.textContent = 'Runtime Status: ' + status;
+            statusText.textContent = 'Activation: ' + status;
             
             statusDiv.appendChild(statusText);
             
