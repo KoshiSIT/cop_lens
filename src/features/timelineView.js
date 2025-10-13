@@ -230,9 +230,10 @@ class TimelineView {
         }
         
         .vis-item {
-            border: none;
-            background: transparent;
-            font-size: 20px;
+            border: 2px solid white !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+            font-size: 32px !important;
+            padding: 4px !important;
         }
         
         .event-activate .vis-item-content {
