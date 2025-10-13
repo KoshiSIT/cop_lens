@@ -102,13 +102,18 @@ class TimelineView {
      * Add new event to timeline
      */
     addEvent(event) {
+        console.log('📊 [Timeline] Adding event:', event.type, event.timestamp);
         this.events.push(event);
 
         if (this.panel) {
+            const timelineEvent = this.convertToTimelineEvent(event);
+            console.log('📊 [Timeline] Converted event:', timelineEvent);
             this.sendToWebview({
                 command: 'addEvent',
-                event: this.convertToTimelineEvent(event)
+                event: timelineEvent
             });
+        } else {
+            console.log('📊 [Timeline] Panel not visible, event queued');
         }
     }
 
@@ -382,9 +387,11 @@ class TimelineView {
         // Handle messages from extension
         window.addEventListener('message', event => {
             const message = event.data;
+            console.log('📊 [Timeline WebView] Received message:', message.command, message);
             
             switch (message.command) {
                 case 'loadEvents':
+                    console.log('📊 [Timeline WebView] Loading events:', message.events.length);
                     items.clear();
                     items.add(message.events);
                     updateInfo();
@@ -392,12 +399,14 @@ class TimelineView {
                     break;
                     
                 case 'addEvent':
+                    console.log('📊 [Timeline WebView] Adding event:', message.event);
                     items.add(message.event);
                     updateInfo();
                     timeline.fit();
                     break;
                     
                 case 'clear':
+                    console.log('📊 [Timeline WebView] Clearing events');
                     items.clear();
                     updateInfo();
                     break;
