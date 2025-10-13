@@ -248,6 +248,10 @@ class TimelineView {
             background: #9E9E9E;
         }
         
+        .event-blue {
+            background: #2196F3;
+        }
+        
         .event-green {
             background: #4CAF50;
         }
@@ -364,8 +368,8 @@ class TimelineView {
                 label: 'Layer Activated'
             },
             'layer:deactivate': {
-                emoji: '⚪',
-                className: 'event-gray large',
+                emoji: '🔵',
+                className: 'event-blue large',
                 label: 'Layer Deactivated'
             },
             'refinement:add': {
@@ -389,11 +393,11 @@ class TimelineView {
             const timeScale = document.getElementById('time-scale');
             timeScale.innerHTML = '';
             
-            // Create 5 time labels
+            // Create 5 time labels (relative to minTime = 0)
             for (let i = 0; i <= 4; i++) {
-                const time = minTime + (range * i / 4);
+                const relativeTime = (range * i / 4);
                 const label = document.createElement('span');
-                label.textContent = time.toFixed(0) + 'ms';
+                label.textContent = relativeTime.toFixed(0) + 'ms';
                 timeScale.appendChild(label);
             }
         }
@@ -428,7 +432,8 @@ class TimelineView {
                 // Tooltip
                 const tooltip = document.createElement('div');
                 tooltip.className = 'tooltip';
-                tooltip.textContent = config.label + ' at ' + event.timestamp + 'ms';
+                const relativeTime = (event.timestamp - minTime).toFixed(0);
+                tooltip.textContent = config.label + ' at +' + relativeTime + 'ms';
                 eventEl.appendChild(tooltip);
                 
                 // Click handler
@@ -463,7 +468,8 @@ class TimelineView {
             html += '</div>';
             
             html += '<div class="detail-row">';
-            html += '<span class="detail-label">Time:</span> ' + event.timestamp + 'ms';
+            const relativeTime = (event.timestamp - minTime).toFixed(0);
+            html += '<span class="detail-label">Time:</span> +' + relativeTime + 'ms (from start)';
             html += '</div>';
             
             if (event.data) {
