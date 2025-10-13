@@ -220,7 +220,7 @@ async function activate(context) {
                     `COP-lens: Project analysis incomplete. Some features may be limited.`
                 );
                 
-                // フォールバック: 少なくとも現在のファイルは解析
+                // Fallback: at least analyze current file
                 try {
                     updateGlobalStore();
                 } catch (fallbackError) {
