@@ -1,11 +1,11 @@
 /**
  * Timeline View
  * 
- * Displays runtime events in a timeline visualization using Vis.js
+ * Displays runtime events in a simple timeline visualization
+ * Pure HTML/CSS/JS implementation (no external libraries)
  */
 
 const vscode = require('vscode');
-const path = require('path');
 
 class TimelineView {
     constructor(context, runtimeEventHandler) {
@@ -54,46 +54,12 @@ class TimelineView {
             this.context.subscriptions
         );
 
-        // Load existing events
-        this.loadExistingEvents();
-    }
-
-    /**
-     * Load existing events from RuntimeEventHandler
-     */
-    loadExistingEvents() {
-        if (!this.runtimeEventHandler) {
-            return;
-        }
-
-        const layerStates = this.runtimeEventHandler.getAllLayerStates();
-        const events = [];
-
-        // Convert layer states to timeline events
-        layerStates.forEach((state, layerName) => {
-            // Add activation events
-            if (state.status === 'ACTIVE' || state.status === 'INACTIVE') {
-                events.push({
-                    id: `${layerName}_${state.lastUpdate}`,
-                    content: state.status === 'ACTIVE' ? '🟠' : '⚪',
-                    start: new Date(state.lastUpdate),
-                    type: 'point',
-                    className: state.status === 'ACTIVE' ? 'event-active' : 'event-inactive',
-                    title: `${layerName}: ${state.status}<br>at ${new Date(state.lastUpdate).toLocaleTimeString()}`,
-                    data: {
-                        layerName,
-                        status: state.status,
-                        signals: state.signals,
-                        timestamp: state.lastUpdate
-                    }
-                });
-            }
-        });
-
-        if (events.length > 0) {
+        // Send queued events
+        if (this.events.length > 0) {
+            console.log(`📊 [Timeline] Sending ${this.events.length} queued events`);
             this.sendToWebview({
                 command: 'loadEvents',
-                events: events
+                events: this.events
             });
         }
     }
@@ -103,11 +69,16 @@ class TimelineView {
      */
     addEvent(event) {
         console.log('📊 [Timeline] Adding event:', event.type, event.timestamp);
-        this.events.push(event);
+        
+        const timelineEvent = {
+            type: event.type,
+            timestamp: event.timestamp,
+            data: event.data
+        };
+        
+        this.events.push(timelineEvent);
 
         if (this.panel) {
-            const timelineEvent = this.convertToTimelineEvent(event);
-            console.log('📊 [Timeline] Converted event:', timelineEvent);
             this.sendToWebview({
                 command: 'addEvent',
                 event: timelineEvent
@@ -115,52 +86,6 @@ class TimelineView {
         } else {
             console.log('📊 [Timeline] Panel not visible, event queued');
         }
-    }
-
-    /**
-     * Convert runtime event to Vis.js timeline event
-     */
-    convertToTimelineEvent(event) {
-        let content = '';
-        let className = '';
-        let title = '';
-
-        switch (event.type) {
-            case 'layer:deploy':
-                content = '🟩';
-                className = 'event-deploy';
-                title = `Layer Deployed: ${event.data.layerName}`;
-                break;
-            case 'layer:activate':
-                content = '🟠';
-                className = 'event-activate';
-                title = `Layer Activated: ${event.data.layerName}`;
-                break;
-            case 'layer:deactivate':
-                content = '⚪';
-                className = 'event-deactivate event-large';
-                title = `Layer Deactivated: ${event.data.layerName}`;
-                break;
-            case 'refinement:add':
-                content = '🟡';
-                className = 'event-refinement';
-                title = `Refinement Added: ${event.data.className}.${event.data.methodName}`;
-                break;
-            default:
-                content = '●';
-                className = 'event-default';
-                title = event.type;
-        }
-
-        return {
-            id: `${event.type}_${event.timestamp}`,
-            content: content,
-            start: new Date(event.timestamp),
-            type: 'point',
-            className: className,
-            title: title,
-            data: event.data
-        };
     }
 
     /**
@@ -178,12 +103,18 @@ class TimelineView {
     handleMessage(message) {
         switch (message.command) {
             case 'eventClicked':
-                console.log('Event clicked:', message.eventId);
-                // TODO: Show detail panel
+                console.log('📊 [Timeline] Event clicked:', message.event);
+                // TODO: Show detail panel or jump to code
                 break;
             case 'ready':
-                console.log('Timeline webview ready');
-                this.loadExistingEvents();
+                console.log('📊 [Timeline] WebView ready');
+                // Send all existing events
+                if (this.events.length > 0) {
+                    this.sendToWebview({
+                        command: 'loadEvents',
+                        events: this.events
+                    });
+                }
                 break;
         }
     }
@@ -199,74 +130,150 @@ class TimelineView {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>COP Timeline</title>
     
-    <!-- Vis.js Timeline CSS -->
-    <link href="https://unpkg.com/vis-timeline@7.7.3/styles/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
-    
     <style>
-        body {
+        * {
             margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
             padding: 20px;
             background-color: var(--vscode-editor-background);
             color: var(--vscode-editor-foreground);
             font-family: var(--vscode-font-family);
+            font-size: 13px;
         }
         
         h2 {
-            margin-top: 0;
             font-size: 18px;
             font-weight: 600;
-        }
-        
-        #timeline-container {
-            width: 100%;
-            height: 200px;
-            border: 1px solid var(--vscode-editorWidget-border);
-            background: var(--vscode-editor-background);
-        }
-        
-        .vis-timeline {
-            border: none;
-            font-family: var(--vscode-font-family);
-        }
-        
-        .vis-item {
-            border: 2px solid white !important;
-            background: rgba(255, 255, 255, 0.1) !important;
-            font-size: 32px !important;
-            padding: 4px !important;
-        }
-        
-        .event-activate .vis-item-content {
-            color: #FF9800;
-        }
-        
-        .event-deactivate .vis-item-content {
-            color: #9E9E9E;
-            font-size: 24px;
-        }
-        
-        .event-deploy .vis-item-content {
-            color: #4CAF50;
-        }
-        
-        .event-refinement .vis-item-content {
-            color: #FFD700;
-        }
-        
-        .vis-item.vis-selected {
-            background: var(--vscode-list-activeSelectionBackground);
+            margin-bottom: 16px;
         }
         
         #info {
-            margin-top: 20px;
+            margin-bottom: 16px;
             padding: 12px;
             background: var(--vscode-editorWidget-background);
             border: 1px solid var(--vscode-editorWidget-border);
             border-radius: 4px;
         }
         
+        .timeline-container {
+            position: relative;
+            margin-bottom: 24px;
+        }
+        
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            background: var(--vscode-editorWidget-background);
+            border: 1px solid var(--vscode-editorWidget-border);
+            border-radius: 4px;
+        }
+        
+        .timeline-track {
+            position: relative;
+            height: 80px;
+            background: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-editorWidget-border);
+            border-radius: 4px;
+        }
+        
+        .time-scale {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 20px;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 12px;
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground);
+            border-bottom: 1px solid var(--vscode-editorWidget-border);
+        }
+        
+        .events-layer {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+        
+        .event {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        
+        .event:hover {
+            transform: translate(-50%, -50%) scale(1.3);
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+            z-index: 10;
+        }
+        
+        .event.large {
+            width: 32px;
+            height: 32px;
+            font-size: 24px;
+        }
+        
+        .event-mint {
+            background: #98D8C8;
+        }
+        
+        .event-yellow {
+            background: #FFD700;
+        }
+        
+        .event-orange {
+            background: #FF9800;
+        }
+        
+        .event-gray {
+            background: #9E9E9E;
+        }
+        
+        .event-green {
+            background: #4CAF50;
+        }
+        
+        .tooltip {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 8px 12px;
+            background: var(--vscode-editorHoverWidget-background);
+            border: 1px solid var(--vscode-editorHoverWidget-border);
+            border-radius: 4px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            font-size: 12px;
+            z-index: 100;
+        }
+        
+        .event:hover .tooltip {
+            opacity: 1;
+        }
+        
         #event-detail {
-            margin-top: 20px;
             padding: 16px;
             background: var(--vscode-editorWidget-background);
             border: 1px solid var(--vscode-editorWidget-border);
@@ -278,87 +285,191 @@ class TimelineView {
             display: block;
         }
         
+        #event-detail h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+        
         .detail-row {
             margin: 8px 0;
+            line-height: 1.6;
         }
         
         .detail-label {
             font-weight: 600;
             color: var(--vscode-foreground);
         }
+        
+        pre {
+            margin-top: 4px;
+            padding: 8px;
+            background: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-editorWidget-border);
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
-    <h2>📱 RemoteEditor - Event Timeline</h2>
+    <h2>Timeline</h2>
     
     <div id="info">
-        <strong>Events:</strong> <span id="event-count">0</span> |
-        <strong>Time Range:</strong> <span id="time-range">-</span>
+        <strong>Events:</strong> <span id="event-count">0</span>
     </div>
     
-    <div id="timeline-container"></div>
+    <div class="timeline-container">
+        <div class="timeline-header">
+            <span>📱 RemoteEditor</span>
+            <span id="event-count-2">0 events</span>
+        </div>
+        
+        <div class="timeline-track">
+            <div class="time-scale" id="time-scale">
+                <!-- Time labels will be inserted here -->
+            </div>
+            <div class="events-layer" id="events-layer">
+                <!-- Events will be inserted here -->
+            </div>
+        </div>
+    </div>
     
     <div id="event-detail">
         <h3>Event Details</h3>
         <div id="detail-content"></div>
     </div>
     
-    <!-- Vis.js Timeline JS -->
-    <script src="https://unpkg.com/vis-timeline@7.7.3/standalone/umd/vis-timeline-graph2d.min.js"></script>
-    
     <script>
         const vscode = acquireVsCodeApi();
         
-        // Initialize timeline
-        const container = document.getElementById('timeline-container');
-        const options = {
-            height: '200px',
-            margin: {
-                item: 10,
-                axis: 5
+        let events = [];
+        let minTime = null;
+        let maxTime = null;
+        
+        // Event type configuration
+        const EVENT_CONFIG = {
+            'layer:created': {
+                emoji: '🟢',
+                className: 'event-mint',
+                label: 'Layer Created'
             },
-            zoomMin: 1000,
-            zoomMax: 1000 * 60 * 60 * 24,
-            orientation: 'top',
-            selectable: true,
-            multiselect: false
+            'layer:deploy': {
+                emoji: '🟩',
+                className: 'event-green',
+                label: 'Layer Deployed'
+            },
+            'layer:activate': {
+                emoji: '🟠',
+                className: 'event-orange',
+                label: 'Layer Activated'
+            },
+            'layer:deactivate': {
+                emoji: '⚪',
+                className: 'event-gray large',
+                label: 'Layer Deactivated'
+            },
+            'refinement:add': {
+                emoji: '🟡',
+                className: 'event-yellow',
+                label: 'Refinement Added'
+            }
         };
         
-        const items = new vis.DataSet([]);
-        const timeline = new vis.Timeline(container, items, options);
-        
-        // Event selection
-        timeline.on('select', function (properties) {
-            if (properties.items.length > 0) {
-                const itemId = properties.items[0];
-                const item = items.get(itemId);
-                showEventDetail(item);
-                
-                vscode.postMessage({
-                    command: 'eventClicked',
-                    eventId: itemId,
-                    data: item.data
-                });
+        // Update time scale
+        function updateTimeScale() {
+            if (events.length === 0) {
+                return;
             }
-        });
+            
+            const timestamps = events.map(e => e.timestamp);
+            minTime = Math.min(...timestamps);
+            maxTime = Math.max(...timestamps);
+            const range = maxTime - minTime || 1000;
+            
+            const timeScale = document.getElementById('time-scale');
+            timeScale.innerHTML = '';
+            
+            // Create 5 time labels
+            for (let i = 0; i <= 4; i++) {
+                const time = minTime + (range * i / 4);
+                const label = document.createElement('span');
+                label.textContent = time.toFixed(0) + 'ms';
+                timeScale.appendChild(label);
+            }
+        }
+        
+        // Calculate position (0-100%)
+        function calculatePosition(timestamp) {
+            if (!minTime || !maxTime || minTime === maxTime) {
+                return 50;
+            }
+            const range = maxTime - minTime;
+            return ((timestamp - minTime) / range) * 100;
+        }
+        
+        // Render events
+        function renderEvents() {
+            const eventsLayer = document.getElementById('events-layer');
+            eventsLayer.innerHTML = '';
+            
+            events.forEach((event, index) => {
+                const config = EVENT_CONFIG[event.type] || {
+                    emoji: '●',
+                    className: 'event-default',
+                    label: event.type
+                };
+                
+                const eventEl = document.createElement('div');
+                eventEl.className = 'event ' + config.className;
+                eventEl.style.left = calculatePosition(event.timestamp) + '%';
+                eventEl.textContent = config.emoji;
+                eventEl.dataset.index = index;
+                
+                // Tooltip
+                const tooltip = document.createElement('div');
+                tooltip.className = 'tooltip';
+                tooltip.textContent = config.label + ' at ' + event.timestamp + 'ms';
+                eventEl.appendChild(tooltip);
+                
+                // Click handler
+                eventEl.addEventListener('click', () => {
+                    showEventDetail(event);
+                    vscode.postMessage({
+                        command: 'eventClicked',
+                        event: event
+                    });
+                });
+                
+                eventsLayer.appendChild(eventEl);
+            });
+            
+            updateInfo();
+        }
+        
+        // Update info
+        function updateInfo() {
+            document.getElementById('event-count').textContent = events.length;
+            document.getElementById('event-count-2').textContent = events.length + ' events';
+        }
         
         // Show event detail
-        function showEventDetail(item) {
+        function showEventDetail(event) {
+            const config = EVENT_CONFIG[event.type] || { label: event.type };
             const detailPanel = document.getElementById('event-detail');
             const detailContent = document.getElementById('detail-content');
             
             let html = '<div class="detail-row">';
-            html += '<span class="detail-label">Event:</span> ' + item.content + ' ' + item.title;
+            html += '<span class="detail-label">Event:</span> ' + config.label;
             html += '</div>';
             
             html += '<div class="detail-row">';
-            html += '<span class="detail-label">Time:</span> ' + item.start.toLocaleString();
+            html += '<span class="detail-label">Time:</span> ' + event.timestamp + 'ms';
             html += '</div>';
             
-            if (item.data) {
+            if (event.data) {
                 html += '<div class="detail-row">';
-                html += '<span class="detail-label">Data:</span><br>';
-                html += '<pre>' + JSON.stringify(item.data, null, 2) + '</pre>';
+                html += '<span class="detail-label">Data:</span>';
+                html += '<pre>' + JSON.stringify(event.data, null, 2) + '</pre>';
                 html += '</div>';
             }
             
@@ -366,56 +477,36 @@ class TimelineView {
             detailPanel.classList.add('visible');
         }
         
-        // Update info
-        function updateInfo() {
-            const count = items.length;
-            document.getElementById('event-count').textContent = count;
-            
-            if (count > 0) {
-                const allItems = items.get();
-                const times = allItems.map(item => item.start.getTime());
-                const minTime = new Date(Math.min(...times));
-                const maxTime = new Date(Math.max(...times));
-                const duration = (maxTime - minTime) / 1000;
-                
-                document.getElementById('time-range').textContent = 
-                    duration.toFixed(1) + 's (' + minTime.toLocaleTimeString() + ' - ' + maxTime.toLocaleTimeString() + ')';
-            } else {
-                document.getElementById('time-range').textContent = '-';
-            }
-        }
-        
         // Handle messages from extension
         window.addEventListener('message', event => {
             const message = event.data;
-            console.log('📊 [Timeline WebView] Received message:', message.command, message);
+            console.log('📊 [Timeline WebView] Received:', message.command);
             
             switch (message.command) {
                 case 'loadEvents':
-                    console.log('📊 [Timeline WebView] Loading events:', message.events.length);
-                    items.clear();
-                    items.add(message.events);
-                    updateInfo();
-                    timeline.fit();
+                    console.log('📊 [Timeline WebView] Loading', message.events.length, 'events');
+                    events = message.events;
+                    updateTimeScale();
+                    renderEvents();
                     break;
                     
                 case 'addEvent':
-                    console.log('📊 [Timeline WebView] Adding event:', message.event);
-                    items.add(message.event);
-                    updateInfo();
-                    timeline.fit();
+                    console.log('📊 [Timeline WebView] Adding event:', message.event.type);
+                    events.push(message.event);
+                    updateTimeScale();
+                    renderEvents();
                     break;
                     
                 case 'clear':
-                    console.log('📊 [Timeline WebView] Clearing events');
-                    items.clear();
-                    updateInfo();
+                    events = [];
+                    renderEvents();
                     break;
             }
         });
         
         // Notify extension that webview is ready
         vscode.postMessage({ command: 'ready' });
+        console.log('📊 [Timeline WebView] Ready');
     </script>
 </body>
 </html>`;
