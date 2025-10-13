@@ -181,7 +181,7 @@ function generateHelperFunctions() {
  * Node detail handler - will be imported from separate file later
  */
 function generateNodeDetailHandler() {
-    const { getNodeDetailHandlerCode } = require('./handlers/nodeDetailHandler');
+    const { getNodeDetailHandlerCode } = require('../handlers/nodeDetailHandler');
     return getNodeDetailHandlerCode();
 }
 
@@ -189,7 +189,7 @@ function generateNodeDetailHandler() {
  * Runtime status handler - will be imported from separate file later
  */
 function generateRuntimeStatusHandler() {
-    const { getRuntimeStatusHandlerCode } = require('./handlers/runtimeStatusHandler');
+    const { getRuntimeStatusHandlerCode } = require('../handlers/runtimeStatusHandler');
     return getRuntimeStatusHandlerCode();
 }
 
@@ -197,7 +197,7 @@ function generateRuntimeStatusHandler() {
  * Event handlers (node click, edge click, etc.)
  */
 function generateEventHandlers() {
-    const { getEventHandlersCode } = require('./handlers/graphEventHandler');
+    const { getEventHandlersCode } = require('../handlers/graphEventHandler');
     return getEventHandlersCode();
 }
 
